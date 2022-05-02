@@ -1,0 +1,8 @@
+(ns quickstart.helloworld
+  (:require
+   [sci.core :as sci]))
+
+(defn main []
+  (print "hello,ss
+
+world\n"))
