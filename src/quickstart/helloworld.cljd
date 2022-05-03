@@ -1,8 +1,25 @@
 (ns quickstart.helloworld
   (:require
-   [sci.core :as sci]))
+   #_[sci.core :as sci]
+   [sci.impl.vars]))
+
+#?(:cljd
+   (defprotocol IReified
+     (getInterfaces [_])
+     (getMethods [_])
+     (getProtocols [_])))
+
+(defn- instance?
+  [x y ])
+
+(defn type-impl [x & _xs]
+  (or (when (instance? #?(:clj quickstart.helloworld/IReified :cljs sci.impl.types/Reified) x)
+        :sci.impl.protocols/reified)
+      (some-> x meta :type)
+      #?(:clj (identity x) ;; no need to check for metadata anymore
+         :cljs (type x))))
 
 (defn main []
-  (print "hello,ss
-
-world\n"))
+  (print (str "hello,ss world\n"
+              IReified
+              #'mapv)))
