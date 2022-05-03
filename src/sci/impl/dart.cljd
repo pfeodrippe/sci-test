@@ -2,3 +2,9 @@
 
 (defn instance?
   [x y])
+
+(defn isa?
+  [x y])
+
+(defn derive
+  [& _args])

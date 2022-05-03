@@ -1,18 +1,24 @@
 (ns sci.impl.interop
   {:no-doc true}
-  #?(:clj (:import [sci.impl Reflector]
+  #?(:cljd ()
+     #_ #_:clj (:import [sci.impl Reflector]
                    [java.lang.reflect Field Modifier]))
   (:require #?(:cljs [goog.object :as gobject])
             #?(:cljs [clojure.string :as str])
+            #?(:clj [clojure.string :as str])    ; it does not want to work with the `:cljd` reader contitional
             [sci.impl.vars :as vars]))
 
 ;; see https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/Reflector.java
 ;; see invokeStaticMethod, getStaticField, etc.
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
 (defn invoke-instance-field
-  #?@(:cljs [[obj _target-class field-name]
+  #?@(:cljd [[obj _target-class field-name]
+             ;; gobject/get didn't work here
+             #_(aget obj field-name)]
+      :cljs [[obj _target-class field-name]
              ;; gobject/get didn't work here
              (aget obj field-name)]
       :clj
@@ -25,7 +31,13 @@
             (throw (ex-info (str "Not found or accessible instance field: " method) {})))))]))
 
 (defn invoke-instance-method
-  #?@(:cljs [[obj _target-class method-name args]
+  #?@(:cljd [[obj _target-class method-name args]
+             ;; gobject/get didn't work here
+             #_(if-let [method (aget obj method-name)]
+               ;; use Reflect rather than (.apply method ...), see https://github.com/babashka/nbb/issues/118
+               (js/Reflect.apply method obj (into-array args) #_(js-object-array args))
+               (throw (js/Error. (str "Could not find instance method: " method-name))))]
+      :cljs [[obj _target-class method-name args]
              ;; gobject/get didn't work here
              (if-let [method (aget obj method-name)]
                ;; use Reflect rather than (.apply method ...), see https://github.com/babashka/nbb/issues/118
@@ -41,9 +53,15 @@
               (invoke-instance-field obj target-class method)
               (Reflector/invokeMatchingMethod method methods obj (object-array args))))))]))
 
-(defn get-static-field #?(:clj [[^Class class field-name-sym]]
+(defn get-static-field #?(:cljd [[class field-name-sym]]
+                          :clj [[^Class class field-name-sym]]
                           :cljs [[class field-name-sym]])
-  #?(:clj (Reflector/getStaticField class (str field-name-sym))
+  #?(:cljd (if (str/includes? (str field-name-sym) ".")
+             true
+             false
+             #_(apply gobject/getValueByKeys class (str/split (str field-name-sym) #"\."))
+             #_(gobject/get class field-name-sym))
+     :clj (Reflector/getStaticField class (str field-name-sym))
      :cljs (if (str/includes? (str field-name-sym) ".")
              (apply gobject/getValueByKeys class (str/split (str field-name-sym) #"\."))
              (gobject/get class field-name-sym))))
@@ -52,14 +70,18 @@
    (defn invoke-js-constructor [constructor args]
      (js/Reflect.construct constructor (into-array args))))
 
-(defn invoke-constructor #?(:clj [^Class class args]
+(defn invoke-constructor #?(:cljd [constructor args]
+                            :clj [^Class class args]
                             :cljs [constructor args])
-  #?(:clj (Reflector/invokeConstructor class (object-array args))
+  #?(:cljd (do 1) #_(Reflector/invokeConstructor class (object-array args))
+     :clj (Reflector/invokeConstructor class (object-array args))
      :cljs (invoke-js-constructor constructor args)))
 
-(defn invoke-static-method #?(:clj [[^Class class method-name] args]
+(defn invoke-static-method #?(:cljd [[class method-name] args]
+                              :clj [[^Class class method-name] args]
                               :cljs [[class method-name] args])
-  #?(:clj
+  #?(:cljd ()
+     :clj
      (Reflector/invokeStaticMethod class (str method-name) (object-array args))
      :cljs (if-let [method (gobject/get class method-name)]
              (js/Reflect.apply method class (into-array args))

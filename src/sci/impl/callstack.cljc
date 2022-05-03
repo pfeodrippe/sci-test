@@ -3,9 +3,10 @@
   (:require [clojure.string :as str]
             [sci.impl.vars :as vars]))
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
-(defn sci-ns-name [^sci.impl.vars.SciNamespace ns]
+(defn sci-ns-name [^sci.impl.vars/SciNamespace ns]
   (vars/getName ns))
 
 (defn select [m]
