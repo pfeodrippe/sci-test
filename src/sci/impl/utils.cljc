@@ -28,8 +28,7 @@
          (instance? js/RegExp x))))
 
 #?(:cljd
-   (defmacro kw-identical? [k v]
-     `(identical? ~k ~v))
+   (def kw-identical? identical?)
 
    #_ #_:clj
    (defmacro kw-identical? [k v]

@@ -81,7 +81,8 @@
           (let [loading (:loading ctx)]
             (if (and loading
                      (not (contains? (:loaded-libs env) lib))
-                     (nat-int? #?(:clj (.indexOf ^clojure.lang.PersistentVector loading lib)
+                     (nat-int? #?(:cljd (.indexOf loading lib)
+                                  :clj (.indexOf ^clojure.lang.PersistentVector loading lib)
                                   :cljs (.indexOf loading lib))))
               (throw-error-with-location
                (let [lib-emphasized (str "[ " lib " ]")
@@ -260,7 +261,8 @@
                            (if-not (exclude sym)
                              (let [v (get ns sym)]
                                (when-not v
-                                 (throw (new #?(:clj java.lang.IllegalAccessError
+                                 (throw (new #?(:cljd Exception
+                                                :clj java.lang.IllegalAccessError
                                                 :cljs js/Error)
                                              ;; TODO: handle private vars
                                              (if false ;; (get (ns-interns ns) sym)

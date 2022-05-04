@@ -10,12 +10,14 @@
    [sci.impl.utils :as utils :refer [throw-error-with-location
                                      rethrow-with-location-of-node
                                      kw-identical?]]
-   [sci.impl.vars :as vars])
+   [sci.impl.vars :as vars]
+   [missing.stuff :refer [instance? class]])
   #?(:cljs (:require-macros [sci.impl.evaluator :refer [def-fn-call resolve-symbol]])))
 
 (declare fn-call)
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
 (def #?(:clj ^:const macros :cljs macros)
   '#{do fn def defn
@@ -66,7 +68,7 @@
                                    ;; bindings (faster/get-2 ctx :bindings)
                                    ;; ctx (faster/assoc-3 ctx :bindings bindings)
                                    ]
-                               (aset ^objects bindings (nth idxs idx) v)
+                               (aset bindings (nth idxs idx) v)
                                (recur ctx bindings
                                       rest-let-bindings
                                       (inc idx)))
@@ -110,7 +112,9 @@
    (let [v (types/eval case-val ctx bindings)]
      (if-let [[_ found] (find case-map v)]
        (types/eval found ctx bindings)
-       (throw (new #?(:clj IllegalArgumentException :cljs js/Error)
+       (throw (new #?(:cljd Exception
+                      :clj IllegalArgumentException
+                      :cljs js/Error)
                    (str "No matching clause: " v))))))
   ([ctx bindings case-map case-val case-default]
    (let [v (types/eval case-val ctx bindings)]
@@ -123,7 +127,7 @@
   (try
     (binding [utils/*in-try* true]
       (types/eval body ctx bindings))
-    (catch #?(:clj Throwable :cljs :default) e
+    (catch #?(:cljd Exception :clj Throwable :cljs :default) e
       (if-let
           [[_ r]
            (reduce (fn [_ c]
@@ -136,7 +140,7 @@
                                 :clj (instance? clazz e))
                          (reduced
                           [::try-result
-                           (do (aset ^objects bindings (:ex-idx c) e)
+                           (do (aset bindings (:ex-idx c) e)
                                (types/eval (:body c) ctx bindings))]))))
                    nil
                    catches)]
@@ -152,10 +156,11 @@
                                 ;; eval args!
                                 (map #(types/eval % ctx bindings) (rest expr))))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defn super-symbols [clazz]
      ;; (prn clazz '-> (map #(symbol (.getName ^Class %)) (supers clazz)))
-     (map #(symbol (.getName ^Class %)) (supers clazz))))
+     (map #(symbol (.getName %)) (supers clazz))))
 
 (defn eval-instance-method-invocation
   [ctx bindings instance-expr method-str field-access args #?(:cljs allowed)]
@@ -173,14 +178,14 @@
             allowed? (or
                       #?(:cljs allowed)
                       (get class->opts :allow)
-                      (let [instance-class-name #?(:clj (.getName ^Class instance-class)
+                      (let [instance-class-name #?(:clj (.getName instance-class)
                                                    :cljs (.-name instance-class))
                             instance-class-symbol (symbol instance-class-name)]
                         (get class->opts instance-class-symbol))
                       #?(:cljs (.log js/console (str method-str))))
-            ^Class target-class (if allowed? instance-class
-                                    (when-let [f (:public-class env)]
-                                      (f instance-expr*)))]
+            target-class (if allowed? instance-class
+                             (when-let [f (:public-class env)]
+                               (f instance-expr*)))]
         ;; we have to check options at run time, since we don't know what the class
         ;; of instance-expr is at analysis time
         (when-not #?(:clj target-class
@@ -205,7 +210,8 @@
              (not (contains? env sym)))
      (let [sym (types/eval sym ctx bindings)
            res (second (@utils/lookup ctx sym false))]
-       (when-not #?(:cljs (instance? sci.impl.types/NodeR res)
+       (when-not #?(:cljd (instance? sci.impl.types/Eval res)
+                    :cljs (instance? sci.impl.types/NodeR res)
                     :clj (instance? sci.impl.types.Eval res))
          res)))))
 
@@ -308,7 +314,8 @@
 (def-fn-call)
 
 ;; The following types cannot be treated as constants in the analyzer
-#?(:clj (extend-protocol types/Eval
+#?(:cljd ()
+   :clj (extend-protocol types/Eval
           java.lang.Class
           (eval [expr _ _]
             expr)

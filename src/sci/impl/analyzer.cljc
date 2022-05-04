@@ -44,7 +44,8 @@
 (defn recur-target? [ctx]
   (:recur-target ctx))
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
 ;; derived from (keys (. clojure.lang.Compiler specials))
 ;; (& monitor-exit case* try reify* finally loop* do letfn* if clojure.core/import* new deftype* let* fn* recur set! . var quote catch throw monitor-enter def)

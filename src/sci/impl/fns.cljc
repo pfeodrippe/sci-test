@@ -8,7 +8,8 @@
             )
   #?(:cljs (:require-macros [sci.impl.fns :refer [gen-fn]])))
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
 (defmacro gen-fn
   ([n]
@@ -39,7 +40,7 @@
                                   [local ith]) locals nths))
            asets `(do ~@(map (fn [fn-param idx]
                                `(aset ~(with-meta 'invoc-array
-                                         {:tag 'objects}) ~idx ~fn-param))
+                                         {#_ #_:tag 'objects}) ~idx ~fn-param))
                              fn-params (range)))]
        `(let ~let-vec
           (fn ~(symbol (str "arity-" n)) ~(cond-> fn-params
@@ -61,7 +62,7 @@
     (pprint/pprint (macroexpand '(gen-run-fn 2))))
 
 (defn fun
-  [#?(:clj ^clojure.lang.Associative ctx :cljs ctx)
+  [#?(:clj ctx :cljs ctx)
    enclosed-array
    bindings
    fn-body
@@ -164,7 +165,7 @@
                                :sci.impl/inner-fn f))
             f)]
     (when self-ref?
-      (aset ^objects enclosed-array (dec (count enclosed-array)) f))
+      (aset enclosed-array (dec (count enclosed-array)) f))
     f))
 
 (vreset! utils/eval-fn eval-fn)

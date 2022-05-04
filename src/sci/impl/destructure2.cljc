@@ -1,7 +1,9 @@
-(ns sci.impl.destructure
+(ns sci.impl.destructure2
   "Destructure function, adapted from Clojure and ClojureScript."
   {:no-doc true}
-  (:refer-clojure :exclude [destructure]))
+  (:refer-clojure :exclude [destructure])
+  (:require
+   [missing.stuff :refer [instance? implements?]]))
 
 (defn destructure* [bindings]
   (let [bents (partition 2 bindings)
@@ -81,7 +83,8 @@
                          (if (seq bes)
                            (let [bb (key (first bes))
                                  bk (val (first bes))
-                                 local (if #?(:clj  (instance? clojure.lang.Named bb)
+                                 local (if #?(:cljd (implements? cljd.core/INamed bb)
+                                              :clj  (instance? clojure.lang.Named bb)
                                               :cljs (implements? INamed bb))
                                          (with-meta (symbol nil (name bb)) (meta bb))
                                          bb)
@@ -112,5 +115,5 @@
             :cljs (new js/Error (str "Unsupported binding key: " (ffirst kwbs)))))
         (reduce process-entry [] bents)))))
 
-(defn destructure [b]
+(defn destructure2 [b]
   (destructure* b))

@@ -2,17 +2,19 @@
   {:no-doc true}
   (:refer-clojure :exclude [destructure macroexpand macroexpand-1])
   (:require
-   [clojure.tools.reader.reader-types :as r]
+   #_[clojure.tools.reader.reader-types :as r]
    [sci.impl.analyzer :as ana]
-   [sci.impl.opts :as opts]
-   [sci.impl.parser :as p]
+   #_[sci.impl.opts :as opts]
+   #_[sci.impl.parser :as p]
    [sci.impl.types :as types]
    [sci.impl.utils :as utils]
-   [sci.impl.vars :as vars]))
+   #_[sci.impl.vars :as vars]
+   #_[missing.stuff :refer [instance?]]))
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
-(defn eval-form [ctx form]
+#_(defn eval-form [ctx form]
   ;; (.println System/err "form")
   ;; (.println System/err form)
   (if (seq? form)
@@ -51,9 +53,9 @@
            (catch #?(:clj Throwable :cljs js/Error) e
              (utils/rethrow-with-location-of-node ctx bindings e analyzed))))))
 
-(vreset! utils/eval-form-state eval-form)
+#_(vreset! utils/eval-form-state eval-form)
 
-(defn eval-string* [ctx s]
+#_(defn eval-string* [ctx s]
   (vars/with-bindings {vars/current-ns @vars/current-ns}
     (let [reader (r/indexing-push-back-reader (r/string-push-back-reader s))]
       (loop [ret nil]
@@ -63,11 +65,11 @@
             (let [ret (eval-form ctx expr)]
               (recur ret))))))))
 
-(vreset! utils/eval-string* eval-string*)
+#_(vreset! utils/eval-string* eval-string*)
 
 ;;;; Called from public API
 
-(defn eval-string
+#_(defn eval-string
   ([s] (eval-string s nil))
   ([s opts]
    (let [init-ctx (opts/init opts)

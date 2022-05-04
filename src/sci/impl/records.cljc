@@ -4,9 +4,11 @@
   (:require [clojure.string :as str]
             [sci.impl.types :as types]
             [sci.impl.utils :as utils]
-            [sci.impl.vars :as vars]))
+            [sci.impl.vars :as vars]
+            [missing.stuff :refer [class?]]))
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
 #?(:clj
    (defn assert-no-jvm-interface [protocol protocol-name expr]
@@ -16,12 +18,13 @@
         (str "Records currently only support protocol implementations, found: " protocol-name)
         expr))))
 
-(defmulti to-string types/type-impl)
-(defmethod to-string :default [this]
+#_(defmulti to-string types/type-impl)
+#_(defmethod to-string :default [this]
   (let [t (types/type-impl this)]
     (str (namespace t) "." (name t) "@"
          #?(:clj (Integer/toHexString (hash this))
             :cljs (.toString (hash this) 16)))))
+(defn to-string [_] "")
 
 (defn clojure-str [v]
   (let [t (types/type-impl v)]
@@ -33,7 +36,8 @@
   (toString [this]
     (to-string this)))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defmethod print-method SciRecord [v ^java.io.Writer w]
      (.write w ^String (clojure-str v))))
 

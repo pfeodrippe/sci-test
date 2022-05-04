@@ -1,7 +1,8 @@
 (ns sci.impl.types
   {:no-doc true}
   (:refer-clojure :exclude [eval])
-  #?(:clj (:require [sci.impl.macros :as macros]))
+  #?(:clj (:require [sci.impl.macros :as macros]
+                    [missing.stuff :refer [instance?]]))
   #?(:cljs (:require-macros [sci.impl.macros :as macros]
                             [sci.impl.types :refer [->Node]]))
   #?(:clj (:import [sci.impl.types IReified])))
@@ -38,9 +39,6 @@
   (getInterfaces [_] interfaces)
   (getMethods [_] meths)
   (getProtocols [_] protocols))
-
-(defn- instance?
-  [x y])
 
 (defn type-impl [x & _xs]
   (or (when (instance? #?(:clj sci.impl.types/IReified :cljs sci.impl.types/Reified) x)
