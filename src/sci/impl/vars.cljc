@@ -15,7 +15,7 @@
             [sci.impl.types :as t]
             [sci.impl.unrestrict :refer [*unrestricted*]]
             [sci.lang]
-            [sci.impl.dart :refer [instance?]])
+            [missing.stuff :refer [instance?]])
   #?(:cljs (:require-macros [sci.impl.vars :refer [with-bindings
                                                    with-writeable-namespace
                                                    with-writeable-var]])))

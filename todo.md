@@ -1,1 +1,2 @@
-- [ ] Add clojure tools reader
+- [x] Add clojure tools reader
+- [ ] Add edamame

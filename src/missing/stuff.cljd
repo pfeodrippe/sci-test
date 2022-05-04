@@ -1,4 +1,4 @@
-(ns sci.impl.dart)
+(ns missing.stuff)
 
 (defn instance?
   [x y])
@@ -6,5 +6,11 @@
 (defn isa?
   [x y])
 
+(defn implements?
+  [x y])
+
 (defn derive
   [& _args])
+
+(defn class
+  [c])

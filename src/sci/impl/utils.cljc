@@ -5,7 +5,7 @@
             [sci.impl.macros :as macros]
             [sci.impl.types :as t]
             [sci.impl.vars :as vars]
-            [sci.impl.dart :refer [instance? derive isa?]])
+            [missing.stuff :refer [instance? derive isa?]])
   #?(:cljs (:require-macros [sci.impl.utils :refer [kw-identical?]])))
 
 #?(:cljd ()
