@@ -9,12 +9,12 @@
    [sci.impl.types :as types]
    [sci.impl.utils :as utils]
    #_[sci.impl.vars :as vars]
-   #_[missing.stuff :refer [instance?]]))
+   [missing.stuff :refer [instance?]]))
 
 #?(:cljd ()
    :clj (set! *warn-on-reflection* true))
 
-#_(defn eval-form [ctx form]
+(defn eval-form [ctx form]
   ;; (.println System/err "form")
   ;; (.println System/err form)
   (if (seq? form)
@@ -35,11 +35,12 @@
             analyzed (ana/analyze ctx form true)
             binding-array-size (count (get-in @cb [upper-sym 0 :syms]))
             bindings (object-array binding-array-size)]
-        (if (instance? #?(:clj sci.impl.types.EvalForm
+        (if (instance? #?(:cljd sci.impl.types/EvalForm
+                          :clj sci.impl.types.EvalForm
                           :cljs sci.impl.types/EvalForm) analyzed)
           (eval-form ctx (types/getVal analyzed))
           (try (types/eval analyzed ctx bindings)
-               (catch #?(:clj Throwable :cljs js/Error) e
+               (catch #?(:cljd Exception :clj Throwable :cljs js/Error) e
                  (utils/rethrow-with-location-of-node ctx bindings e analyzed))))))
     (let [upper-sym (gensym)
           cb (volatile! {upper-sym {0 {:syms {}}}})
@@ -50,10 +51,10 @@
           binding-array-size (count (get-in @cb [upper-sym 0 :syms]))
           bindings (object-array binding-array-size)]
       (try (types/eval analyzed ctx bindings)
-           (catch #?(:clj Throwable :cljs js/Error) e
+           (catch #?(:cljd Exception :clj Throwable :cljs js/Error) e
              (utils/rethrow-with-location-of-node ctx bindings e analyzed))))))
 
-#_(vreset! utils/eval-form-state eval-form)
+(vreset! utils/eval-form-state eval-form)
 
 #_(defn eval-string* [ctx s]
   (vars/with-bindings {vars/current-ns @vars/current-ns}
