@@ -103,6 +103,8 @@
 
 (defmacro resolve-symbol [bindings sym]
   `(.get ~(with-meta bindings
+            {}) ~sym)
+  #_`(.get ~(with-meta bindings
             {:tag 'java.util.Map}) ~sym))
 
 (declare eval-string*)

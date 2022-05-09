@@ -61,7 +61,11 @@
 
 (def needs-ctx (symbol "needs-ctx"))
 
-#?(:cljs
+#?(:cljd
+   (def allowed-append "used for allowing interop in with-out-str"
+     (symbol "append"))
+
+   :cljs
    (def allowed-append "used for allowing interop in with-out-str"
      (symbol "append")))
 

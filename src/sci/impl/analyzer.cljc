@@ -4,7 +4,7 @@
   (:require
    [clojure.string :as str]
    #?(:cljs [goog.object :as gobj])
-   [sci.impl.destructure :refer [destructure]]
+   [sci.impl.destructure2 :refer [destructure2]]
    [sci.impl.evaluator :as eval]
    [sci.impl.faster :as faster]
    [sci.impl.fns :as fns]
@@ -17,10 +17,11 @@
    #?(:cljs [sci.impl.types :as types :refer [->constant]])
    [sci.impl.utils :as utils :refer
     [ana-macros constant? kw-identical? macro?
-     maybe-destructured rethrow-with-location-of-node set-namespace!]]
+     rethrow-with-location-of-node set-namespace!]]
    [sci.impl.vars :as vars]
+   [missing.stuff :refer [class? instance? implements?]]
    #?(:cljs [cljs.tagged-literals :refer [JSValue]]))
-  #?(:clj (:import [sci.impl Reflector]))
+  #_(do #?(:clj (:import [sci.impl Reflector])))
   #?(:cljs
      (:require-macros
       [sci.impl.analyzer :refer [gen-return-do
@@ -230,7 +231,8 @@
                                    (do ~@(map (fn [j]
                                                 `(aset
                                                   ~(with-meta 'bindings
-                                                     {:tag 'objects}) ~j
+                                                     {}
+                                                     #_{:tag 'objects}) ~j
                                                   ~(symbol (str "eval-" j))))
                                               (range i)))
                                    ::recur)
@@ -277,7 +279,7 @@
                      (concat (map (fn* [c] `(assert ~c)) pre)
                              body-exprs)
                      body-exprs)
-        {:keys [:params :body]} (maybe-destructured binding-vector body-exprs)
+        {:keys [:params :body]} (utils/maybe-destructured binding-vector body-exprs)
         [fixed-args [_ var-arg-name]] (split-with #(not= '& %) params)
         fixed-args (vec fixed-args)
         fixed-arity (count fixed-args)
@@ -378,19 +380,19 @@
         (if (or self-ref? (seq closed-over-iden->binding-idx))
           (let [enclosed-array-cnt (cond-> closed-over-cnt
                                      fn-name (inc))
-                ^objects binding->enclosed
-                (into-array (keep (fn [iden]
-                                    ;; for fn-id usage there is no outer binding idx
-                                    (when-let [binding-idx (get iden->invoke-idx iden)]
-                                      (let [enclosed-idx (get iden->enclosed-idx iden)]
-                                        ;; (prn :copying binding-idx '-> enclosed-idx)
-                                        (doto (object-array 2)
-                                          (aset 0 binding-idx)
-                                          (aset 1 enclosed-idx)))))
-                                  closed-over-idens))]
-            (fn [^objects bindings]
+                binding->enclosed
+                (identity #_into-array (keep (fn [iden]
+                                               ;; for fn-id usage there is no outer binding idx
+                                               (when-let [binding-idx (get iden->invoke-idx iden)]
+                                                 (let [enclosed-idx (get iden->enclosed-idx iden)]
+                                                   ;; (prn :copying binding-idx '-> enclosed-idx)
+                                                   (doto (object-array 2)
+                                                     (aset 0 binding-idx)
+                                                     (aset 1 enclosed-idx)))))
+                                             closed-over-idens))]
+            (fn [bindings]
               (areduce binding->enclosed idx ret (object-array enclosed-array-cnt)
-                       (let [^objects idxs (aget binding->enclosed idx)
+                       (let [idxs (aget binding->enclosed idx)
                              binding-idx (aget idxs 0)
                              binding-val (aget bindings binding-idx)
                              enclosed-idx (aget idxs 1)]
@@ -402,7 +404,7 @@
                        (let [iden->invocation-idx (:iden->invoke-idx body)
                              invocation-self-idx (:self-ref-idx body)
                              enclosed->invocation
-                             (into-array (keep (fn [iden]
+                             (identity #_into-array (keep (fn [iden]
                                                  (when-let [invocation-idx (iden->invocation-idx iden)]
                                                    (doto (object-array 2)
                                                      (aset 0 (iden->enclosed-idx iden))
@@ -410,14 +412,14 @@
                                                closed-over-idens))
                              invoc-size (count iden->invocation-idx)
                              copy-enclosed->invocation
-                             (when (pos? (alength ^objects enclosed->invocation))
-                               (fn [^objects enclosed-array ^objects invoc-array]
-                                 (areduce ^objects enclosed->invocation idx ret invoc-array
-                                          (let [^objects idxs (aget ^objects enclosed->invocation idx)
-                                                enclosed-idx (aget ^objects  idxs 0)
-                                                enclosed-val (aget ^objects enclosed-array enclosed-idx)
+                             (when (pos? (alength enclosed->invocation))
+                               (fn [enclosed-array invoc-array]
+                                 (areduce enclosed->invocation idx ret invoc-array
+                                          (let [idxs (aget enclosed->invocation idx)
+                                                enclosed-idx (aget  idxs 0)
+                                                enclosed-val (aget enclosed-array enclosed-idx)
                                                 invoc-idx (aget idxs 1)]
-                                            (aset ^objects ret invoc-idx enclosed-val)
+                                            (aset ret invoc-idx enclosed-val)
                                             ret))))]
                          (assoc body
                                 :invoc-size invoc-size
@@ -509,7 +511,7 @@
 (defn analyze-let
   "The let macro from clojure.core"
   [ctx [_let let-bindings & exprs :as expr]]
-  (let [let-bindings (destructure let-bindings)]
+  (let [let-bindings (destructure2 let-bindings)]
     (analyze-let* ctx expr let-bindings exprs)))
 
 (defn init-var! [ctx name expr]
@@ -517,13 +519,14 @@
         env (:env ctx)
         the-current-ns (get-in @env [:namespaces cnn])
         refers (:refers the-current-ns)
-        the-current-ns (if-let [x (and refers (.get ^java.util.Map refers name))]
+        the-current-ns (if-let [x (and refers (.get refers name))]
                          (throw-error-with-location
                           (str name " already refers to "
                                x " in namespace "
                                cnn)
                           expr)
-                         (if-not #?(:clj (.containsKey ^java.util.Map the-current-ns name)
+                         (if-not #?(:cljd (get the-current-ns name)
+                                    :clj (.containsKey ^java.util.Map the-current-ns name)
                                     :cljs (get the-current-ns name))
                            (assoc the-current-ns name
                                   (doto (vars/->SciVar nil (symbol (str cnn)
@@ -538,7 +541,7 @@
     (swap! env
            (fn [env]
              (update env :namespaces assoc cnn the-current-ns))))
-  nil)
+    nil)
 
 (defn analyze-def
   [ctx expr]
@@ -553,7 +556,8 @@
                       ?docstring)
           expected-arg-count (if docstring 4 3)]
       (when-not (<= arg-count expected-arg-count)
-        (throw (new #?(:clj  IllegalArgumentException
+        (throw (new #?(:cljd Exception
+                       :clj  IllegalArgumentException
                        :cljs js/Error)
                     "Too many arguments to def")))
       (let [init (if docstring ?init ?docstring)
@@ -802,7 +806,17 @@
               meth-name (if field-access
                           (subs method-name 1)
                           method-name)]
-          #?(:clj (if (class? instance-expr)
+          #?(:cljd (let [stack (assoc (meta expr)
+                                      :ns @vars/current-ns
+                                      :file @vars/current-file)
+                         allowed? (identical? method-expr utils/allowed-append)]
+                     (with-meta (sci.impl.types/->Node
+                                 (eval/eval-instance-method-invocation
+                                  ctx bindings instance-expr meth-name field-access args allowed?)
+                                 stack)
+                       {::instance-expr instance-expr
+                        ::method-name method-name}))
+             :clj (if (class? instance-expr)
                     (if (nil? args)
                       (if field-access
                         (sci.impl.types/->Node
@@ -862,7 +876,7 @@
   "Expands (. x method)"
   [ctx expr]
   (when (< (count expr) 3)
-    (throw (new #?(:clj IllegalArgumentException :cljs js/Error)
+    (throw (new #?(:cljd Exception :clj IllegalArgumentException :cljs js/Error)
                 "Malformed member expression, expecting (.member target ...)")))
   (analyze-dot ctx expr))
 
@@ -870,7 +884,7 @@
   "Expands (.foo x)"
   [ctx [method-name obj & args :as expr]]
   (when (< (count expr) 2)
-    (throw (new #?(:clj IllegalArgumentException :cljs js/Error)
+    (throw (new #?(:cljd Exception :clj IllegalArgumentException :cljs js/Error)
                 "Malformed member expression, expecting (.member target ...)")))
   (analyze-dot ctx (list '. obj (cons (symbol (subs (name method-name) 1)) args))))
 
@@ -982,13 +996,14 @@
     (sci.impl.types/->Node
      (try
        (apply f ctx analyzed-args)
-       (catch #?(:clj Throwable :cljs js/Error) e
+       (catch #?(:cljd Exception :clj Throwable :cljs js/Error) e
          (rethrow-with-location-of-node ctx bindings e this)))
      stack)))
 
 (defn analyze-ns-form [ctx [_ns ns-name & exprs :as expr]]
   (when-not (symbol? ns-name)
-    (throw (new #?(:clj IllegalArgumentException
+    (throw (new #?(:cljd Exception
+                   :clj IllegalArgumentException
                    :cljs js/Error)
                 (str "Namespace name must be symbol, got: " (pr-str ns-name)))))
   (let [[docstring exprs]
@@ -1089,7 +1104,7 @@
                                   ~@(map (fn [j]
                                            `(types/eval ~(symbol (str "arg" j)) ~'ctx ~'bindings))
                                          (range i)))
-                                 (catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
+                                 #_(catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
                                    (rethrow-with-location-of-node ~'ctx ~'bindings e# ~'this)))
                                ~'stack))])
                       let-bindings)
@@ -1158,7 +1173,7 @@
                                     ~@(map (fn [j]
                                              `(types/eval ~(symbol (str "arg" j)) ~'ctx ~'bindings))
                                            (range i)))
-                                   (catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
+                                   #_(catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
                                      (rethrow-with-location-of-node ~'ctx ~'bindings e# ~'this)))
                                  ~'stack)
                                 (sci.impl.types/->Node
@@ -1167,7 +1182,7 @@
                                     ~@(map (fn [j]
                                              `(types/eval ~(symbol (str "arg" j)) ~'ctx ~'bindings))
                                            (range i)))
-                                   (catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
+                                   #_(catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
                                      (rethrow-with-location-of-node ~'ctx ~'bindings e# ~'this)))
                                  ~'stack)))])
                       let-bindings)
@@ -1203,7 +1218,7 @@
                      :file @vars/current-file)]
     (sci.impl.types/->Node
      (try (apply eval/eval-import ctx args)
-          (catch #?(:clj Throwable :cljs js/Error) e
+          (catch #?(:cljd Exception :clj Throwable :cljs js/Error) e
             (rethrow-with-location-of-node ctx bindings e this)))
      stack)))
 
@@ -1301,7 +1316,8 @@
                                                ;; hand back control to eval-form for
                                                ;; interleaved analysis and eval
                                                (types/->EvalForm v)
-                                               :else (let [v (if m (if #?(:clj (instance? clojure.lang.IObj v)
+                                               :else (let [v (if m (if #?(:cljd (implements? cljd.core/IWithMeta v)
+                                                                          :clj (instance? clojure.lang.IObj v)
                                                                           :cljs (implements? IWithMeta v))
                                                                      (with-meta v (merge m (meta v)))
                                                                      v)
@@ -1415,8 +1431,9 @@
           (vars/pop-thread-bindings))))))
 
 (defn map-fn [children-count]
-  (if (<= children-count 16)
-    array-map hash-map))
+  hash-map
+  #_(if (<= children-count 16)
+      array-map hash-map))
 
 (defn return-map [ctx the-map analyzed-children]
   (let [mf (map-fn (count analyzed-children))]
@@ -1424,7 +1441,8 @@
     (return-call ctx the-map mf analyzed-children nil nil)))
 
 (defn constant-node? [x]
-  #?(:clj (instance? sci.impl.types.ConstantNode x)
+  #?(:cljd (instance? sci.impl.types/ConstantNode x)
+     :clj (instance? sci.impl.types.ConstantNode x)
      :cljs (not (instance? sci.impl.types.NodeR x))))
 
 #?(:clj (defn unwrap-children [children]
@@ -1530,7 +1548,7 @@
                               (if (:const mv)
                                 @v
                                 (if (vars/isMacro v)
-                                  (throw (new #?(:clj IllegalStateException :cljs js/Error)
+                                  (throw (new #?(:cljd Exception :clj IllegalStateException :cljs js/Error)
                                               (str "Can't take value of a macro: " v "")))
                                   (sci.impl.types/->Node
                                    (faster/deref-1 v)

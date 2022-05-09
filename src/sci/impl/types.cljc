@@ -82,47 +82,57 @@
        ((.-f expr) expr ctx bindings)
        expr)))
 
-#?(:cljd
-   (defmacro ->Node
-     [body stack]
-     `(reify
-        sci.impl.types/Eval
-        (~'eval [~'this ~'ctx ~'bindings]
-         ~body)
-        sci.impl.types/Stack
-        (~'stack [_#] ~stack)))
+(defmacro ->Node
+  [body stack]
+  `(reify
+     sci.impl.types/Eval
+     (~'eval [~'this ~'ctx ~'bindings]
+      ~body)
+     sci.impl.types/Stack
+     (~'stack [_#] ~stack)))
 
-   #_ #_:clj
-   (macros/deftime
-     (defmacro ->Node
-       [body stack]
-       (macros/?
-        :clj `(reify
-                sci.impl.types/Eval
-                (~'eval [~'this ~'ctx ~'bindings]
-                 ~body)
-                sci.impl.types/Stack
-                (~'stack [_#] ~stack))
-        :cljs `(->NodeR
-                (fn [~'this ~'ctx ~'bindings]
-                  ~body)
-                ~stack))))
+#_( #?(:cljd
+    (defmacro ->Node
+      [body stack]
+      10
+      #_`(reify
+           sci.impl.types/Eval
+           (~'eval [~'this ~'ctx ~'bindings]
+            ~body)
+           sci.impl.types/Stack
+           (~'stack [_#] ~stack)))
 
-   :cljs
-   (macros/deftime
-     (defmacro ->Node
-       [body stack]
-       (macros/?
-        :clj `(reify
-                sci.impl.types/Eval
-                (~'eval [~'this ~'ctx ~'bindings]
-                 ~body)
-                sci.impl.types/Stack
-                (~'stack [_#] ~stack))
-        :cljs `(->NodeR
-                (fn [~'this ~'ctx ~'bindings]
+    #_ #_:clj
+    (macros/deftime
+      (defmacro ->Node
+        [body stack]
+        (macros/?
+         :clj `(reify
+                 sci.impl.types/Eval
+                 (~'eval [~'this ~'ctx ~'bindings]
                   ~body)
-                ~stack)))))
+                 sci.impl.types/Stack
+                 (~'stack [_#] ~stack))
+         :cljs `(->NodeR
+                 (fn [~'this ~'ctx ~'bindings]
+                   ~body)
+                 ~stack))))
+
+    :cljs
+    (macros/deftime
+      (defmacro ->Node
+        [body stack]
+        (macros/?
+         :clj `(reify
+                 sci.impl.types/Eval
+                 (~'eval [~'this ~'ctx ~'bindings]
+                  ~body)
+                 sci.impl.types/Stack
+                 (~'stack [_#] ~stack))
+         :cljs `(->NodeR
+                 (fn [~'this ~'ctx ~'bindings]
+                   ~body)
+                 ~stack))))))
 
 #?(:clj
    (deftype ConstantNode [x]
