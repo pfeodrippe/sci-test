@@ -44,8 +44,12 @@
     (str name))
   HasName
   (getName [_] name)
-  #?(:clj cljd.core/IMeta :cljs IMeta)
-  #?(:clj (clojure.core/meta [_] meta) :cljs (-meta [_] meta))
+  #?(:cljd cljd.core/IMeta
+     #_ #_:clj clojure.lang.IMeta
+     :cljs IMeta)
+  #?(:cljd (-meta [_] meta)
+     :clj (clojure.core/meta [_] meta)
+     :cljs (-meta [_] meta))
   ;; #?(:clj clojure.lang.IReference)
   ;; #?(:clj (alterMeta [this f args]
   ;;                    (with-writeable-namespace this meta
@@ -74,7 +78,8 @@
    (def dvals (volatile! top-frame)))
 
 (defn get-thread-binding-frame ^Frame []
-  #?(:clj (.get dvals)
+  #?(:cljd @dvals
+     :clj (.get dvals)
      :cljs @dvals))
 
 (deftype TBox #?(:clj [thread ^:mutable val]
@@ -85,12 +90,14 @@
   (getVal [this] val))
 
 (defn clone-thread-binding-frame ^Frame []
-  (let [^Frame f #?(:clj (.get dvals)
+  (let [^Frame f #?(:cljd @dvals
+                    :clj (.get dvals)
                     :cljs @dvals)]
     (Frame. (.-bindings f) nil)))
 
 (defn reset-thread-binding-frame [frame]
-  #?(:clj (.set dvals frame)
+  #?(:cljd (vreset! dvals frame)
+     :clj (.set dvals frame)
      :cljs (vreset! dvals frame)))
 
 (declare var?)
@@ -130,7 +137,8 @@
   ;; type hint needed to satisfy CLJS compiler / shadow
   (if-let [f (.-prev ^Frame (get-thread-binding-frame))]
     (if (identical? top-frame f)
-      #?(:clj (.remove dvals)
+      #?(:cljd (vreset! dvals top-frame)
+         :clj (.remove dvals)
          :cljs (vreset! dvals top-frame))
       (reset-thread-binding-frame f))
     (throw (new #?(:clj Exception :cljs js/Error) "No frame to pop."))))
@@ -149,9 +157,10 @@
 
 (defn get-thread-binding ^TBox [sci-var]
   (when-let [;; type hint added to prevent shadow-cljs warning, although fn has return tag
-             ^Frame f #?(:clj (.get dvals)
+             ^Frame f #?(:cljd @dvals
+                         :clj (.get dvals)
                          :cljs @dvals)]
-    #?(:cljd (.get (.-bindings f) sci-var)
+    #?(:cljd (get ^cljd.core/PersistentHashMap (.-bindings f) sci-var)
        :clj (.get ^java.util.Map (.-bindings f) sci-var)
        :cljs (.get (.-bindings f) sci-var))))
 
@@ -185,49 +194,49 @@
   (toString [_]
     (str "Unbound: " the-var))
   #?@(:cljd [cljd.core/IFn] :clj [cljd.core/IFn] :cljs [IFn])
-  (#?(:clj invoke :cljs -invoke) [_]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r s]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r s]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r s t]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r s t]
     (throw-unbound-call-exception the-var))
-  (#?(:clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r s t rest]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [_ a b c d e f g h i j k l m n o p q r s t rest]
     (throw-unbound-call-exception the-var))
   #?(:clj
      (applyTo [_ args]
@@ -317,7 +326,9 @@
                        (-write writer "#'")
                        (pr-writer (toSymbol a) writer opts)))
   #?(:clj cljd.core/IMeta :cljs IMeta)
-  #?(:clj (clojure.core/meta [_] meta) :cljs (-meta [_] meta))
+  #?(:cljd (-meta [_] meta)
+     :clj (clojure.core/meta [_] meta)
+     :cljs (-meta [_] meta))
   ;; #?(:clj Comparable :cljs IEquiv)
   ;; (-equiv [this other]
   ;;   (if (instance? Var other)
@@ -337,50 +348,50 @@
   ;; added for multi-methods
 
   ;; #?(:cljs Fn) ;; In the real CLJS this is there... why?
-  ;; #?(:cljd [] :clj clojure.lang.IFn :cljs IFn)
-  (#?(:clj invoke :cljs -invoke) [this]
+  #?(:cljd cljd.core/IFn #_ #_:clj clojure.lang.IFn :cljs IFn)
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this]
     (@this))
-  (#?(:clj invoke :cljs -invoke) [this a]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a]
     (@this a))
-  (#?(:clj invoke :cljs -invoke) [this a b]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b]
     (@this a b))
-  (#?(:clj invoke :cljs -invoke) [this a b c]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c]
     (@this a b c))
-  (#?(:clj invoke :cljs -invoke) [this a b c d]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d]
     (@this a b c d))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e]
     (@this a b c d e))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f]
     (@this a b c d e f))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g]
     (@this a b c d e f g))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h]
     (@this a b c d e f g h))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i]
+  (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i]
     (@this a b c d e f g h i))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j]
     (@this a b c d e f g h i j))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k]
     (@this a b c d e f g h i j k))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l]
     (@this a b c d e f g h i j k l))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m]
     (@this a b c d e f g h i j k l m))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n]
     (@this a b c d e f g h i j k l m n))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o]
     (@this a b c d e f g h i j k l m n o))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p]
     (@this a b c d e f g h i j k l m n o p))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q]
     (@this a b c d e f g h i j k l m n o p q))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r]
     (@this a b c d e f g h i j k l m n o p q r))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s]
     (@this a b c d e f g h i j k l m n o p q r s))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s t]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s t]
     (@this a b c d e f g h i j k l m n o p q r s t))
-  (#?(:clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s t rest]
+  #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s t rest]
     (apply @this a b c d e f g h i j k l m n o p q r s t rest))
   #?(:clj
      (applyTo [this args]

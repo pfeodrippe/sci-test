@@ -68,7 +68,7 @@
                                    ;; bindings (faster/get-2 ctx :bindings)
                                    ;; ctx (faster/assoc-3 ctx :bindings bindings)
                                    ]
-                               (aset bindings (nth idxs idx) v)
+                               (aset ^cljd.core/PersistentVector bindings (nth idxs idx) v)
                                (recur ctx bindings
                                       rest-let-bindings
                                       (inc idx)))
@@ -102,8 +102,9 @@
     (get (get (get env :namespaces) cnn) var-name)))
 
 (defmacro resolve-symbol [bindings sym]
-  `(.get ~(with-meta bindings
-            {}) ~sym)
+  `(get ~(with-meta bindings
+            {:tag 'cljd.core/PersistentHashMap})
+         ~sym)
   #_`(.get ~(with-meta bindings
             {:tag 'java.util.Map}) ~sym))
 
@@ -125,7 +126,7 @@
        (types/eval case-default ctx bindings)))))
 
 (defn eval-try
-  [ctx bindings body catches finally]
+  [ctx ^cljd.core/PersistentVector bindings body catches finally]
   (try
     (binding [utils/*in-try* true]
       (types/eval body ctx bindings))
@@ -180,7 +181,8 @@
             allowed? (or
                       #?(:cljs allowed)
                       (get class->opts :allow)
-                      (let [instance-class-name #?(:clj (.getName instance-class)
+                      (let [instance-class-name #?(:cljd (.-runtimeType instance-class)
+                                                   :clj (.getName instance-class)
                                                    :cljs (.-name instance-class))
                             instance-class-symbol (symbol instance-class-name)]
                         (get class->opts instance-class-symbol))

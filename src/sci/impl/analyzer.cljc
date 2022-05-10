@@ -231,8 +231,7 @@
                                    (do ~@(map (fn [j]
                                                 `(aset
                                                   ~(with-meta 'bindings
-                                                     {}
-                                                     #_{:tag 'objects}) ~j
+                                                     {:tag 'cljd.core/PersistentVector}) ~j
                                                   ~(symbol (str "eval-" j))))
                                               (range i)))
                                    ::recur)
@@ -249,7 +248,7 @@
 (defn analyze-children [ctx children]
   (mapv #(analyze ctx %) children))
 
-(defrecord FnBody [params body fixed-arity var-arg-name self-ref-idx iden->invoke-idx])
+#_(defrecord FnBody [params body fixed-arity var-arg-name self-ref-idx iden->invoke-idx])
 
 (declare update-parents)
 
@@ -299,9 +298,11 @@
         self-ref-idx (when fn-name (update-parents ctx (:closure-bindings ctx) fn-id))
         body (return-do (with-recur-target ctx true) fn-expr body)
         iden->invoke-idx (get-in @(:closure-bindings ctx) (conj (:parents ctx) :syms))]
-    (cond-> (->FnBody params body fixed-arity var-arg-name self-ref-idx iden->invoke-idx)
-      var-arg-name
-      (assoc :vararg-idx (get iden->invoke-idx (last param-idens))))))
+    (cond-> {:params params :body body :fixed-arity fixed-arity
+             :var-arg-name var-arg-name :self-ref-idx self-ref-idx :iden->invoke-idx iden->invoke-idx}
+      #_(->FnBody params body fixed-arity var-arg-name self-ref-idx iden->invoke-idx)
+        var-arg-name
+        (assoc :vararg-idx (get iden->invoke-idx (last param-idens))))))
 
 (defn analyzed-fn-meta [ctx m]
   (let [;; seq expr has location info with 2 keys
@@ -386,7 +387,7 @@
                                                (when-let [binding-idx (get iden->invoke-idx iden)]
                                                  (let [enclosed-idx (get iden->enclosed-idx iden)]
                                                    ;; (prn :copying binding-idx '-> enclosed-idx)
-                                                   (doto (object-array 2)
+                                                   (doto ^cljd.core/PersistentVector (object-array 2)
                                                      (aset 0 binding-idx)
                                                      (aset 1 enclosed-idx)))))
                                              closed-over-idens))]
@@ -396,7 +397,7 @@
                              binding-idx (aget idxs 0)
                              binding-val (aget bindings binding-idx)
                              enclosed-idx (aget idxs 1)]
-                         (aset ret enclosed-idx binding-val)
+                         (aset ^cljd.core/PersistentVector ret enclosed-idx binding-val)
                          ret))))
           (constantly nil))
         bodies (:bodies analyzed-bodies)
@@ -405,21 +406,21 @@
                              invocation-self-idx (:self-ref-idx body)
                              enclosed->invocation
                              (identity #_into-array (keep (fn [iden]
-                                                 (when-let [invocation-idx (iden->invocation-idx iden)]
-                                                   (doto (object-array 2)
-                                                     (aset 0 (iden->enclosed-idx iden))
-                                                     (aset 1 invocation-idx))))
-                                               closed-over-idens))
+                                                            (when-let [invocation-idx (iden->invocation-idx iden)]
+                                                              (doto ^cljd.core/PersistentVector (object-array 2)
+                                                                (aset 0 (iden->enclosed-idx iden))
+                                                                (aset 1 invocation-idx))))
+                                                          closed-over-idens))
                              invoc-size (count iden->invocation-idx)
                              copy-enclosed->invocation
-                             (when (pos? (alength enclosed->invocation))
+                             (when (pos? (alength ^cljd.core/PersistentVector enclosed->invocation))
                                (fn [enclosed-array invoc-array]
                                  (areduce enclosed->invocation idx ret invoc-array
                                           (let [idxs (aget enclosed->invocation idx)
                                                 enclosed-idx (aget  idxs 0)
                                                 enclosed-val (aget enclosed-array enclosed-idx)
                                                 invoc-idx (aget idxs 1)]
-                                            (aset ret invoc-idx enclosed-val)
+                                            (aset ^cljd.core/PersistentVector ret invoc-idx enclosed-val)
                                             ret))))]
                          (assoc body
                                 :invoc-size invoc-size
@@ -519,7 +520,7 @@
         env (:env ctx)
         the-current-ns (get-in @env [:namespaces cnn])
         refers (:refers the-current-ns)
-        the-current-ns (if-let [x (and refers (.get refers name))]
+        the-current-ns (if-let [x (and refers (get refers name))]
                          (throw-error-with-location
                           (str name " already refers to "
                                x " in namespace "

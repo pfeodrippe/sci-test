@@ -12,7 +12,8 @@
 
 (defmacro get-2
   [m k]
-  `(.get ~m ~k))
+  `(get ~m ~k)
+  #_`(.get ~m ~k))
 
 (defmacro deref-1
   [ref]

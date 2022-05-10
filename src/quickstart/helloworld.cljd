@@ -2,10 +2,15 @@
   (:require
    #_[sci.core :as sci]
    #_[sci.impl.vars]
-   sci.impl.interpreter))
+   #_[sci.impl.interpreter :as interpreter]
+   #_[sci.impl.analyzer]
+   [sci.impl.vars]))
 
-(defrecord Eita [a])
+#_(deftype Eita [meta2]
+  IFn
+  (-invoke [_] 100))
 
 (defn main []
   (print (str "hello,ss world\n"
-              (->Eita 10))))
+              #_(meta (Eita. 10))
+              #_(interpreter/eval-form {} '(do 3)))))

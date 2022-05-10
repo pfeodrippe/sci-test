@@ -14,27 +14,21 @@
   (setVal [_this _v])
   (getVal [_this]))
 
-#?(:cljd
-   (defprotocol IReified
-     (getInterfaces [_])
-     (getMethods [_])
-     (getProtocols [_]))
+(defprotocol IReified
+  (getInterfaces [_])
+  (getMethods [_])
+  (getProtocols [_]))
 
-   :cljs
-   (defprotocol IReified
-     (getInterfaces [_])
-     (getMethods [_])
-     (getProtocols [_])))
-
-#?(:clj
+#?(:cljd ()
+   :clj
    (do (defn getMethods [obj]
-         (.getMethods obj))
+         (.getMethods ^IReified obj))
        (defn getInterfaces [obj]
-         (.getInterfaces obj))
+         (.getInterfaces ^IReified obj))
        (defn getProtocols [obj]
-         (.getProtocols obj))))
+         (.getProtocols ^IReified obj))))
 
-#_(deftype Reified [interfaces meths protocols]
+(deftype Reified [interfaces meths protocols]
   IReified
   (getInterfaces [_] interfaces)
   (getMethods [_] meths)

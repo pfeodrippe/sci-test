@@ -106,7 +106,7 @@
 
 (defn rethrow-with-location-of-node
   ([ctx e raw-node] (rethrow-with-location-of-node ctx (:bindings ctx) e raw-node))
-  ([ctx _bindings e raw-node]
+  ([ctx _bindings ^cljd.core/ExceptionInfo e raw-node]
    (if #?(:cljd *in-try*
           :clj (or *in-try*
                    (not= (:main-thread-id ctx)
@@ -128,7 +128,8 @@
                wrapping-sci-error? (isa? (:type d) :sci/error)]
            (if wrapping-sci-error?
              (throw e)
-             (let [ex-msg #?(:clj (.getMessage e)
+             (let [ex-msg #?(:cljd (.-message e)
+                             :clj (.getMessage e)
                              :cljs (.-message e))
                    {:keys [:line :column :file]}
                    (or stack

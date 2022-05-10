@@ -81,7 +81,7 @@
           (let [loading (:loading ctx)]
             (if (and loading
                      (not (contains? (:loaded-libs env) lib))
-                     (nat-int? #?(:cljd (.indexOf loading lib)
+                     (nat-int? #?(:cljd (.indexOf ^cljd.core/PersistentVector loading lib)
                                   :clj (.indexOf ^clojure.lang.PersistentVector loading lib)
                                   :cljs (.indexOf loading lib))))
               (throw-error-with-location
@@ -133,7 +133,8 @@
         nil))))
 
 (defn load-lib [ctx prefix lib & options]
-  (when (and prefix (pos? (.indexOf (name lib) #?(:clj (int \.)
+  (when (and prefix (pos? (.indexOf (name lib) #?(:cljd \.
+                                                  :clj (int \.)
                                                   :cljs \.))))
     (throw-error-with-location (str "Found lib name '" (name lib) "' containing period with prefix '"
                                     prefix "'.  lib names inside prefix lists must not contain periods")

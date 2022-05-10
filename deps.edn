@@ -2,4 +2,4 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
         tensegritics/clojuredart
         {:git/url "https://github.com/tensegritics/ClojureDart.git"
-         :sha "8d9a8cf1d4c1419914cad14266a5c4ab3b2c3821"}}}
+         :sha "da13cb555adade05b9768179c508c9ba0a5b5806"}}}
