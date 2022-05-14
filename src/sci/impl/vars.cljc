@@ -267,6 +267,12 @@
                     :cljs ^:mutable meta)
                  #?(:clj ^:volatile-mutable thread-bound
                     :cljs ^:mutable thread-bound)]
+  #?(:cljd
+     (^:setter root [this v]
+      (set! (.-root this) v)))
+  #?(:cljd
+     (^:setter thread_bound [this v]
+      (set! (.-thread_bound this) v)))
   #?(:clj
      ;; marker interface, clj only for now
      sci.lang/IVar)
@@ -290,7 +296,7 @@
         (when-some [m (clojure.core/meta root)]
           (:sci/macro m))))
   (setThreadBound [this v]
-    (set! (.-thread-bound this) v))
+    (set! (.-thread_bound this) v))
   (unbind [this]
     (with-writeable-var this meta
       (set! (.-root this) (SciUnbound. this))))
@@ -370,29 +376,29 @@
   (#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i]
     (@this a b c d e f g h i))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j]
-    (@this a b c d e f g h i j))
+      (@this a b c d e f g h i j))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k]
-    (@this a b c d e f g h i j k))
+      (@this a b c d e f g h i j k))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l]
-    (@this a b c d e f g h i j k l))
+      (@this a b c d e f g h i j k l))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m]
-    (@this a b c d e f g h i j k l m))
+      (@this a b c d e f g h i j k l m))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n]
-    (@this a b c d e f g h i j k l m n))
+      (@this a b c d e f g h i j k l m n))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o]
-    (@this a b c d e f g h i j k l m n o))
+      (@this a b c d e f g h i j k l m n o))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p]
-    (@this a b c d e f g h i j k l m n o p))
+      (@this a b c d e f g h i j k l m n o p))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q]
-    (@this a b c d e f g h i j k l m n o p q))
+      (@this a b c d e f g h i j k l m n o p q))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r]
-    (@this a b c d e f g h i j k l m n o p q r))
+      (@this a b c d e f g h i j k l m n o p q r))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s]
-    (@this a b c d e f g h i j k l m n o p q r s))
+      (@this a b c d e f g h i j k l m n o p q r s))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s t]
-    (@this a b c d e f g h i j k l m n o p q r s t))
+      (@this a b c d e f g h i j k l m n o p q r s t))
   #_(#?(:cljd -invoke :clj invoke :cljs -invoke) [this a b c d e f g h i j k l m n o p q r s t rest]
-    (apply @this a b c d e f g h i j k l m n o p q r s t rest))
+      (apply @this a b c d e f g h i j k l m n o p q r s t rest))
   #?(:clj
      (applyTo [this args]
               (apply @this args))))

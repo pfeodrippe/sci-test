@@ -3,14 +3,27 @@
    #_[sci.core :as sci]
    #_[sci.impl.vars]
    #_[sci.impl.interpreter :as interpreter]
-   #_[sci.impl.analyzer]
-   [sci.impl.vars]))
+   [sci.impl.analyzer]
+   #_[sci.impl.vars]))
 
-#_(deftype Eita [meta2]
-  IFn
-  (-invoke [_] 100))
+#_(defprotocol ITestProtocol
+  (act [_ _]))
+
+#_(deftype Test [^:mutable x-a]
+  (^:setter x_a [_ v]
+   #_(set! x-a v))
+  ITestProtocol
+  (act [this o] (set! x-a o))
+
+  Object
+  (toString [this]
+    (str x-a)))
+
+#_(def ggg (Test. 10))
+#_(act ggg 40)
 
 (defn main []
   (print (str "hello,ss world\n"
+              #_ggg
               #_(meta (Eita. 10))
               #_(interpreter/eval-form {} '(do 3)))))
