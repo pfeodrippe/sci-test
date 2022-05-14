@@ -813,7 +813,7 @@
                          allowed? (identical? method-expr utils/allowed-append)]
                      (with-meta (sci.impl.types/->Node
                                  (eval/eval-instance-method-invocation
-                                  ctx bindings instance-expr meth-name field-access args allowed?)
+                                  ctx bindings instance-expr meth-name field-access args #_allowed?)
                                  stack)
                        {::instance-expr instance-expr
                         ::method-name method-name}))
@@ -1105,7 +1105,7 @@
                                   ~@(map (fn [j]
                                            `(types/eval ~(symbol (str "arg" j)) ~'ctx ~'bindings))
                                          (range i)))
-                                 #_(catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
+                                 (catch Exception e#
                                    (rethrow-with-location-of-node ~'ctx ~'bindings e# ~'this)))
                                ~'stack))])
                       let-bindings)
@@ -1174,7 +1174,7 @@
                                     ~@(map (fn [j]
                                              `(types/eval ~(symbol (str "arg" j)) ~'ctx ~'bindings))
                                            (range i)))
-                                   #_(catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
+                                   (catch Exception e#
                                      (rethrow-with-location-of-node ~'ctx ~'bindings e# ~'this)))
                                  ~'stack)
                                 (sci.impl.types/->Node
@@ -1183,7 +1183,7 @@
                                     ~@(map (fn [j]
                                              `(types/eval ~(symbol (str "arg" j)) ~'ctx ~'bindings))
                                            (range i)))
-                                   #_(catch ~(macros/? :clj 'Throwable :cljs 'js/Error) e#
+                                   (catch Exception e#
                                      (rethrow-with-location-of-node ~'ctx ~'bindings e# ~'this)))
                                  ~'stack)))])
                       let-bindings)
