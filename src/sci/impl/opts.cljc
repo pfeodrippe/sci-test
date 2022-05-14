@@ -9,7 +9,8 @@
    [sci.lang])
   #?(:clj (:import [sci.impl.types IReified])))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defrecord Env [namespaces imports load-fn]))
 
 (defn init-env! [env bindings aliases namespaces classes raw-classes imports
@@ -31,7 +32,7 @@
                                     (get-in env [:namespaces 'user :aliases]))
                      namespaces (-> namespaces
                                     (update 'user assoc :aliases aliases)
-                                    (update 'clojure.core assoc 'global-hierarchy
+                                    #_(update 'clojure.core assoc 'global-hierarchy
                                             (vars/new-var 'global-hierarchy (make-hierarchy)
                                                           {:ns vars/clojure-core-ns})))
                      imports (if-let [env-imports (:imports env)]
@@ -39,7 +40,10 @@
                                imports)]
                  ;; TODO: is the first case ever hit?
                  (if-not env
-                   #?(:clj (->Env namespaces imports load-fn)
+                   #?(:cljd {:namespaces namespaces
+                             :imports imports
+                             :load-fn load-fn}
+                      :clj (->Env namespaces imports load-fn)
                       :cljs {:namespaces namespaces
                              :imports imports
                              :load-fn load-fn
@@ -57,7 +61,8 @@
   (not-empty (into prev-perms (comp cat (map strip-core-ns)) permissions)))
 
 (def default-classes
-  #?(:clj {'java.lang.AssertionError AssertionError
+  #?(:cljd {}
+     :clj {'java.lang.AssertionError AssertionError
            'java.lang.Exception {:class Exception}
            'java.lang.IllegalArgumentException java.lang.IllegalArgumentException
            'clojure.lang.Delay clojure.lang.Delay
@@ -106,7 +111,8 @@
        :class->opts (persistent! class->opts)})))
 
 (def default-reify-fn
-  #?(:clj (fn [{:keys [interfaces methods protocols]}]
+  #?(:cljd (fn [_ _ _])
+     :clj (fn [{:keys [interfaces methods protocols]}]
             (reify
               Object
               (toString [this]
@@ -120,13 +126,19 @@
                 protocols)))
      :cljs (fn [_ _ _])))
 
-#?(:clj (defrecord Ctx [bindings env
+#?(:cljd ()
+   :clj (defrecord Ctx [bindings env
                         features readers
                         reload-all
                         check-permissions]))
 
 (defn ->ctx [bindings env features readers check-permissions?]
-  #?(:cljs {:bindings bindings
+  #?(:cljd {:bindings bindings
+            :env env
+            :features features
+            :readers readers
+            :check-permissions check-permissions?}
+     :cljs {:bindings bindings
             :env env
             :features features
             :readers readers
@@ -159,7 +171,8 @@
                    :deny (when deny (process-permissions #{} deny))
                    :reify-fn (or reify-fn default-reify-fn)
                    :proxy-fn proxy-fn
-                   #?@(:clj [:main-thread-id (.getId (Thread/currentThread))]))]
+                   #?@(:cljd []
+                       :clj [:main-thread-id (.getId (Thread/currentThread))]))]
     ctx))
 
 (defn merge-opts [ctx opts]

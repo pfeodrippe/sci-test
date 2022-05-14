@@ -260,19 +260,22 @@
            (throw (ex-info (str "Built-in var #'" ns-name# "/" name# " is read-only.")
                            {:var ~the-var})))))))
 
-(deftype SciVar [#?(:clj ^:volatile-mutable root
+(deftype SciVar [#?(:cljd ^:mutable root
+                    :clj ^:volatile-mutable root
                     :cljs ^:mutable root)
                  sym
-                 #?(:clj ^:volatile-mutable meta
+                 #?(:cljd ^:mutable meta
+                    :clj ^:volatile-mutable meta
                     :cljs ^:mutable meta)
-                 #?(:clj ^:volatile-mutable thread-bound
+                 #?(:cljd ^:mutable thread-bound
+                    :clj ^:volatile-mutable thread-bound
                     :cljs ^:mutable thread-bound)]
   #?(:cljd
-     (^:setter root [this v]
-      (set! (.-root this) v)))
+     (^:setter root2 [this v]
+      (set! root v)))
   #?(:cljd
-     (^:setter thread_bound [this v]
-      (set! (.-thread_bound this) v)))
+     (^:setter thread_bound2 [this v]
+      (set! thread-bound v)))
   #?(:clj
      ;; marker interface, clj only for now
      sci.lang/IVar)
@@ -282,7 +285,7 @@
   IVar
   (bindRoot [this v]
     (with-writeable-var this meta
-      (set! (.-root this) v)))
+      (set! (.-root2 this) v)))
   (getRawRoot [this]
     root)
   (toSymbol [this]
@@ -296,10 +299,10 @@
         (when-some [m (clojure.core/meta root)]
           (:sci/macro m))))
   (setThreadBound [this v]
-    (set! (.-thread_bound this) v))
+    (set! (.-thread_bound2 this) v))
   (unbind [this]
     (with-writeable-var this meta
-      (set! (.-root this) (SciUnbound. this))))
+      (set! (.-root2 this) (SciUnbound. this))))
   (hasRoot [this]
     (not (instance? SciUnbound root)))
   t/IBox

@@ -4,7 +4,7 @@
   #?(:cljs (:require [sci.impl.types :as t])))
 
 (defn reify [form _ _ctx & args]
-  (let [{classes true methods false} (group-by symbol? args)
+  #_(let [{classes true methods false} (group-by symbol? args)
         methods (->> (group-by first methods)
                      (map (fn [[meth bodies]]
                             (let [meth (if (simple-symbol? meth)

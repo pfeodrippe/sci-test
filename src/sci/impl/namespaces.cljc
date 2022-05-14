@@ -9,31 +9,35 @@
                             #?(:cljs this-as)
                             clojure-version])
   (:require
-   #?(:clj [clojure.edn :as edn]
+   [missing.stuff :refer [resolve instance? class?]]
+   #?(:cljd [cljd.reader :as edn]
+      #_ #_:clj [clojure.edn :as edn]
       :cljs [cljs.reader :as edn])
-   [clojure.set :as set]
+   #_[clojure.set :as set]
    [clojure.string :as str]
-   #?(:clj [clojure.java.io :as jio])
+   #_(#?(:clj [clojure.java.io :as jio]))
    [clojure.walk :as walk]
-   [sci.impl.core-protocols :as core-protocols]
+   #_[sci.impl.core-protocols :as core-protocols]
    [sci.impl.doseq-macro :as doseq-macro]
    [sci.impl.for-macro :as for-macro]
-   [sci.impl.hierarchies :as hierarchies]
+   #_[sci.impl.hierarchies :as hierarchies]
    [sci.impl.io :as io]
    [sci.impl.macros :as macros]
-   [sci.impl.multimethods :as mm]
-   [sci.impl.parser :as parser]
+   #_[sci.impl.multimethods :as mm]
+   #_[sci.impl.parser :as parser]
    [sci.impl.protocols :as protocols]
-   [sci.impl.read :as read :refer [load-string read read-string]]
+   #_[sci.impl.read :as read :refer [load-string read read-string]]
    [sci.impl.records :as records]
-   [sci.impl.reify :as reify]
-   #?(:clj [sci.impl.proxy :as proxy])
+   #_[sci.impl.reify :as reify]
+   #?(:cljd ()
+      #_ #_:clj [sci.impl.proxy :as proxy])
    [sci.impl.types :as types]
    [sci.impl.utils :as utils :refer [eval needs-ctx]]
    [sci.impl.vars :as vars])
   #?(:cljs (:require-macros [sci.impl.namespaces :refer [copy-var copy-core-var]])))
 
-#?(:clj (set! *warn-on-reflection* true))
+#?(:cljd ()
+   :clj (set! *warn-on-reflection* true))
 
 (def clojure-core-ns vars/clojure-core-ns)
 
@@ -43,45 +47,52 @@
 (def inlined-vars
   '#{+' unchecked-remainder-int unchecked-subtract-int dec' short-array bit-shift-right aget = boolean bit-shift-left aclone dec < char unchecked-long unchecked-negate unchecked-inc-int floats pos? boolean-array alength bit-xor unsigned-bit-shift-right neg? unchecked-float num reduced? booleans int-array inc' <= -' * min get long double bit-and-not unchecked-add-int short quot unchecked-double longs unchecked-multiply-int int > unchecked-int unchecked-multiply unchecked-dec double-array float - byte-array zero? unchecked-dec-int rem nth nil? bit-and *' unchecked-add identical? unchecked-divide-int unchecked-subtract / bit-or >= long-array object-array doubles unchecked-byte unchecked-short float-array inc + aset chars ints bit-not byte max == count char-array compare shorts unchecked-negate-int unchecked-inc unchecked-char bytes})
 
-#?(:clj (def elide-vars (= "true" (System/getenv "SCI_ELIDE_VARS")))
+#?(:cljd (def elide-vars false)
+   :clj (def elide-vars (= "true" (System/getenv "SCI_ELIDE_VARS")))
    ;; for self-hosted
    :cljs (def elide-vars false))
 
+(defmacro copy-core-var [sym] sym)
+
+(defmacro copy-var
+  ([sym _ns] sym)
+  ([sym _ns _opts] sym))
+
 (macros/deftime
   (defmacro if-vars-elided [then else]
-    (if elide-vars
-      then else))
+    #_(if elide-vars
+        then else))
   ;; Note: self hosted CLJS can't deal with multi-arity macros so this macro is split in 2
-  (if-vars-elided
-      (do
-        #?(:clj
-           (binding [*out* *err*]
-             (println "SCI: eliding vars.")))
-        (defmacro copy-var
-          ([sym _ns] sym)
-          ([sym _ns _opts] sym))
-        (defmacro copy-core-var [sym] sym))
-    (do
-      (defmacro copy-var
-        [sym ns & [opts]]
-        (let [nm (:name opts)]
-          `(let [ns# ~ns
-                 m# (-> (var ~sym) meta)
-                 name# (or ~nm (:name m#))
-                 val# ~sym]
-             (vars/->SciVar val# name# (cond->
-                                           {:doc (:doc m#)
-                                            :name name#
-                                            :arglists (:arglists m#)
-                                            :ns ns#
-                                            :sci/built-in true}
-                                         (and (identical? clojure-core-ns ns#)
-                                              (contains? inlined-vars name#))
-                                         (assoc :sci.impl/inlined val#))
-                            false))))
-      (defmacro copy-core-var
-        ([sym]
-         `(copy-var ~sym clojure-core-ns))))))
+  #_(if-vars-elided
+        (do
+          #?(:clj
+             (binding [*out* *err*]
+               (println "SCI: eliding vars.")))
+          (defmacro copy-var
+            ([sym _ns] sym)
+            ([sym _ns _opts] sym))
+          (defmacro copy-core-var [sym] sym))
+        (do
+          (defmacro copy-var
+            [sym ns & [opts]]
+            (let [nm (:name opts)]
+              `(let [ns# ~ns
+                     m# (-> (var ~sym) meta)
+                     name# (or ~nm (:name m#))
+                     val# ~sym]
+                 (vars/->SciVar val# name# (cond->
+                                               {:doc (:doc m#)
+                                                :name name#
+                                                :arglists (:arglists m#)
+                                                :ns ns#
+                                                :sci/built-in true}
+                                               (and (identical? clojure-core-ns ns#)
+                                                    (contains? inlined-vars name#))
+                                               (assoc :sci.impl/inlined val#))
+                                false))))
+          (defmacro copy-core-var
+            ([sym]
+             `(copy-var ~sym clojure-core-ns))))))
 
 (defn macrofy
   ([f] (vary-meta f #(assoc % :sci/macro true)))
@@ -179,7 +190,8 @@
     (list 'if (first clauses)
           (if (next clauses)
             (second clauses)
-            (throw (new #?(:clj IllegalArgumentException
+            (throw (new #?(:cljd Exception
+                           :clj IllegalArgumentException
                            :cljs js/Error)
                         "cond requires an even number of forms")))
           (cons 'clojure.core/cond (next (next clauses))))))
@@ -282,16 +294,18 @@
   (if-let [v (resolve 'clojure.core/ex-message)]
     @v
     (fn ex-message [ex]
-      (when (instance? #?(:clj Throwable :cljs js/Error) ex)
-        #?(:clj (.getMessage ^Throwable ex)
+      (when (instance? #?(:cljd Exception :clj Throwable :cljs js/Error) ex)
+        #?(:cljd () #_(.-cause ex)
+           :clj (.getMessage ^Throwable ex)
            :cljs (.-message ex))))))
 
 (def ex-cause
   (if-let [v (resolve 'clojure.core/ex-cause)]
     @v
     (fn ex-message [ex]
-      (when (instance? #?(:clj Throwable :cljs ExceptionInfo) ex)
-        #?(:clj (.getCause ^Throwable ex)
+      (when (instance? #?(:cljd Exception :clj Throwable :cljs ExceptionInfo) ex)
+        #?(:cljd () #_(.-cause ex)
+           :clj (.getCause ^Throwable ex)
            :cljs (.-cause ex))))))
 
 (def assert-var (vars/dynamic-var '*assert* true {:ns clojure-core-ns}))
@@ -332,7 +346,9 @@
                                 (with-open ~(subvec bindings 2) ~@body)
                                 (finally
                                   (.close ~(bindings 0)))))
-    :else #?(:clj (throw (IllegalArgumentException.
+    :else #?(:cljd (throw (Exception.
+                          "with-open only allows Symbols in bindings"))
+             :clj (throw (IllegalArgumentException.
                           "with-open only allows Symbols in bindings"))
              :cljs ::TODO)))
 
@@ -387,7 +403,8 @@
                      (split-at (if (= :>> (second args)) 3 2) args)
                      n (count clause)]
                  (cond
-                   (= 0 n) `(throw (new #?(:clj IllegalArgumentException
+                   (= 0 n) `(throw (new #?(:cljd Exception
+                                           :clj IllegalArgumentException
                                            :cljs js/Error)
                                         (str "No matching clause: " ~expr)))
                    (= 1 n) a
@@ -426,7 +443,7 @@
 
 ;;;; Namespaces / vars
 
-(defn sci-ns-name [^sci.impl.vars.SciNamespace ns]
+(defn sci-ns-name [^sci.impl.vars/SciNamespace ns]
   (vars/getName ns))
 
 (defn sci-alias [ctx alias-sym ns-sym]
@@ -444,7 +461,8 @@
   (utils/namespace-object (:env ctx) ns-sym false nil))
 
 (defn sci-the-ns [ctx x]
-  (if (instance? #?(:clj sci.impl.vars.SciNamespace
+  (if (instance? #?(:cljd sci.impl.vars/SciNamespace
+                    :clj sci.impl.vars.SciNamespace
                     :cljs sci.impl.vars/SciNamespace) x) x
       (or (sci-find-ns ctx x)
           (throw (new #?(:clj Exception :cljs js/Error)
@@ -607,7 +625,8 @@
          (let [namespace (-> sym namespace symbol)]
            (require sci-ctx namespace)
            (sci-resolve sci-ctx sym)))
-     (throw (new #?(:clj IllegalArgumentException
+     (throw (new #?(:cljd Exception
+                    :clj IllegalArgumentException
                     :cljs js/Error)
                  (str "Not a qualified symbol: " sym))))))
 
@@ -617,10 +636,12 @@
           sym' (-> sym name symbol)]
       (if-let [namespace (-> sci-ctx :env deref :namespaces (get nsname))]
         (get namespace sym')
-        (throw (new #?(:clj IllegalArgumentException
+        (throw (new #?(:cljd Exception
+                       :clj IllegalArgumentException
                        :cljs js/Error)
                     (str "No such namespace: " nsname)))))
-    (throw (new #?(:clj IllegalArgumentException
+    (throw (new #?(:cljd Exception
+                   :clj IllegalArgumentException
                    :cljs js/Error)
                 (str "Not a qualified symbol: " sym)))))
 
@@ -742,16 +763,16 @@
      {:private true
       :obj (vars/->SciNamespace 'clojure.lang nil)
       ;; IDeref as protocol instead of class
-      'IDeref core-protocols/deref-protocol
+      #_ #_ #_ #_'IDeref core-protocols/deref-protocol
       'deref core-protocols/deref
       ;; IAtom as protocol instead of class
-      'IAtom core-protocols/swap-protocol
-      'swap core-protocols/swap
-      'reset core-protocols/reset
-      'compareAndSet core-protocols/compareAndSet
-      'IAtom2 core-protocols/iatom2-protocol
-      'resetVals core-protocols/resetVals
-      'swapVals core-protocols/swapVals
+      #_ #_'IAtom core-protocols/swap-protocol
+      #_ #_'swap core-protocols/swap
+      #_ #_'reset core-protocols/reset
+      #_ #_'compareAndSet core-protocols/compareAndSet
+      #_ #_'IAtom2 core-protocols/iatom2-protocol
+      #_ #_'resetVals core-protocols/resetVals
+      #_ #_'swapVals core-protocols/swapVals
       }))
 
 ;;;; Record impl
@@ -781,14 +802,16 @@
 
 ;;;; Clojure 1.11.0 kwargs
 
-#?(:clj (defmacro when-<-clojure-1.11.0 [& body]
+#?(:cljd ()
+   :clj (defmacro when-<-clojure-1.11.0 [& body]
           (let [{:keys [:major :minor]} *clojure-version*]
             (when-not (or (> major 1)
                           (and (= major 1)
                                (>= minor 11)))
               `(do ~@body)))))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (when-<-clojure-1.11.0
        (defn seq-to-map-for-destructuring
          "Builds a map from a seq as described in
@@ -809,15 +832,17 @@
 ;;      `(let [~name (clojure.core/-js-this)]
 ;;         ~@body)))
 
-#?(:clj (def clojure-version-var (vars/dynamic-var
+#?(:cljd ()
+   :clj (def clojure-version-var (vars/dynamic-var
                                   '*clojure-version* (update clojure.core/*clojure-version*
                                                              :qualifier (fn [qualifier]
                                                                           (if qualifier
                                                                             (str qualifier "-SCI")
                                                                             "SCI")))
-                                  {:ns clojure-core-ns}) ))
+                                  {:ns clojure-core-ns})))
 
-#?(:clj (defn
+#?(:cljd ()
+   :clj (defn
           clojure-version
           "Returns clojure version as a printable string."
           []
@@ -861,22 +886,25 @@
    'println (copy-core-var io/println)
    'pr-str (copy-core-var io/pr-str)
    'prn-str (copy-core-var io/prn-str)
-   'print-str (copy-core-var #?(:cljs io/print-str :clj print-str))
-   #?@(:clj ['print-method (copy-core-var io/print-method)])
-   #?@(:clj ['print-dup (copy-core-var print-dup)])
+   #_ #_'print-str (copy-core-var #?(:cljs io/print-str :clj print-str))
+   #?@(:cljd []
+       :clj ['print-method (copy-core-var io/print-method)])
+   #?@(:cljd []
+       :clj ['print-dup (copy-core-var print-dup)])
    #?@(:clj ['printf (copy-core-var io/printf)])
    'with-out-str (macrofy 'with-out-str io/with-out-str)
    #?@(:clj ['with-in-str (macrofy 'with-in-str io/with-in-str)
              'read-line (copy-core-var io/read-line)])
    ;; end io
    ;; read
-   '*data-readers* parser/data-readers
-   '*default-data-reader-fn* parser/default-data-reader-fn
-   '*read-eval* parser/read-eval
-   '*reader-resolver* parser/reader-resolver
-   'read (core-var 'read read true)
-   'read-string (core-var 'read-string read-string true)
-   #?@(:clj ['reader-conditional? (copy-core-var reader-conditional?)])
+   #_ #_'*data-readers* parser/data-readers
+   #_ #_'*default-data-reader-fn* parser/default-data-reader-fn
+   #_ #_'*read-eval* parser/read-eval
+   #_ #_'*reader-resolver* parser/reader-resolver
+   #_ #_'read (core-var 'read read true)
+   #_ #_'read-string (core-var 'read-string read-string true)
+   #?@(:cljd []
+       :clj ['reader-conditional? (copy-core-var reader-conditional?)])
    ;; end read
    ;; REPL variables
    '*1 *1
@@ -885,22 +913,23 @@
    '*e *e
    ;; end REPL variables
    ;; clojure version
-   #?@(:clj ['*clojure-version* clojure-version-var
+   #?@(:cljd ()
+       :clj ['*clojure-version* clojure-version-var
              'clojure-version (copy-core-var clojure-version)])
    ;; end clojure version
    ;; multimethods
-   'defmulti (macrofy 'defmulti mm/defmulti
-                      clojure-core-ns true)
-   'defmethod (macrofy 'defmethod mm/defmethod)
-   'get-method (copy-core-var get-method)
-   'methods (copy-core-var methods)
-   'multi-fn-add-method-impl (copy-core-var mm/multi-fn-add-method-impl)
-   'multi-fn?-impl (copy-core-var mm/multi-fn?-impl)
-   'multi-fn-impl (copy-core-var mm/multi-fn-impl)
-   'prefer-method (copy-core-var prefer-method)
-   'prefers (copy-core-var prefers)
-   'remove-method (copy-core-var remove-method)
-   'remove-all-methods (copy-core-var remove-all-methods)
+   #_ #_'defmulti (macrofy 'defmulti mm/defmulti
+                           clojure-core-ns true)
+   #_ #_'defmethod (macrofy 'defmethod mm/defmethod)
+   #_ #_'get-method (copy-core-var get-method)
+   #_ #_'methods (copy-core-var methods)
+   #_ #_'multi-fn-add-method-impl (copy-core-var mm/multi-fn-add-method-impl)
+   #_ #_'multi-fn?-impl (copy-core-var mm/multi-fn?-impl)
+   #_ #_'multi-fn-impl (copy-core-var mm/multi-fn-impl)
+   #_ #_'prefer-method (copy-core-var prefer-method)
+   #_ #_'prefers (copy-core-var prefers)
+   #_ #_'remove-method (copy-core-var remove-method)
+   #_ #_'remove-all-methods (copy-core-var remove-all-methods)
    ;; end multimethods
    ;; protocols
    'defprotocol (macrofy 'defprotocol protocols/defprotocol
@@ -911,22 +940,23 @@
                          clojure-core-ns true)
    'extend-protocol (macrofy 'extend-protocol protocols/extend-protocol
                              clojure-core-ns true)
-   '-reified-methods (core-var '-reified-methods #(types/getMethods %))
-   'reify* (core-var 'reify* reify/reify* true)
-   'reify (macrofy 'reify reify/reify clojure-core-ns true)
+   #_ #_'-reified-methods (core-var '-reified-methods #(types/getMethods %))
+   #_ #_'reify* (core-var 'reify* reify/reify* true)
+   #_ #_'reify (macrofy 'reify reify/reify clojure-core-ns true)
    'protocol-type-impl (core-var 'protocol-type-impl types/type-impl)
-   #?@(:clj ['proxy* (core-var 'proxy* proxy/proxy* true)
+   #?@(:cljd []
+       :clj ['proxy* (core-var 'proxy* proxy/proxy* true)
              'proxy (macrofy 'proxy proxy/proxy clojure-core-ns true)])
    'satisfies? (copy-core-var protocols/satisfies?)
    ;; end protocols
    ;; IDeref as protocol
-   'deref (core-var 'deref core-protocols/deref*)
+   #_ #_'deref (core-var 'deref core-protocols/deref*)
    #?@(:cljs ['-deref (core-var '-deref core-protocols/-deref)
               'IDeref core-protocols/deref-protocol])
    ;; end IDeref as protocol
    ;; IAtom / ISwap as protocol
-   'swap! (core-var 'swap! core-protocols/swap!*)
-   'compare-and-set! #?(:clj (core-var 'compare-and-set!
+   #_ #_'swap! (core-var 'swap! core-protocols/swap!*)
+   #_ #_'compare-and-set! #?(:clj (core-var 'compare-and-set!
                                        core-protocols/compare-and-set!*)
                         :cljs (copy-core-var compare-and-set!))
    #?@(:cljs ['IReset core-protocols/reset-protocol
@@ -934,7 +964,8 @@
               '-swap! (core-var '-swap! core-protocols/-swap!)
               '-reset! (core-var '-reset! core-protocols/-reset!)])
    ;; in CLJS swap-vals! and reset-vals! are going through the other protocols
-   #?@(:clj ['swap-vals! (core-var 'swap-vals! core-protocols/swap-vals!*)
+   #?@(:cljd ()
+       :clj ['swap-vals! (core-var 'swap-vals! core-protocols/swap-vals!*)
              'reset-vals! (core-var 'reset-vals! core-protocols/reset-vals!*)])
    ;; private
    'has-root-impl (copy-core-var has-root-impl)
@@ -968,9 +999,10 @@
    'alter-meta! (copy-core-var alter-meta!)
    'alter-var-root (copy-core-var vars/alter-var-root)
    'amap (macrofy 'amap amap*)
-   'ancestors (core-var 'ancestors hierarchies/ancestors* true)
+   #_ #_'ancestors (core-var 'ancestors hierarchies/ancestors* true)
    'aset (copy-core-var aset)
-   #?@(:clj ['aset-boolean (copy-core-var aset-boolean)
+   #?@(:cljd []
+       :clj ['aset-boolean (copy-core-var aset-boolean)
              'aset-byte (copy-core-var aset-byte)
              'aset-char (copy-core-var aset-char)
              'aset-double (copy-core-var aset-double)
@@ -978,7 +1010,8 @@
              'aset-int (copy-core-var aset-int)
              'aset-long (copy-core-var aset-long)
              'aset-short (copy-core-var aset-short)])
-   'alength #?(:clj (vars/new-var 'alength (fn [arr]
+   'alength #?(:cljd (copy-core-var alength)
+               :clj (vars/new-var 'alength (fn [arr]
                                              (java.lang.reflect.Array/getLength arr))
                                   {:ns clojure-core-ns})
                :cljs (copy-core-var alength))
@@ -986,7 +1019,7 @@
    'apply (copy-core-var apply)
    'areduce (macrofy 'areduce areduce*)
    #?@(:cljs ['array? (copy-core-var array?)])
-   'array-map (copy-core-var array-map)
+   #_ #_'array-map (copy-core-var array-map)
    '*assert* assert-var
    'assert (macrofy 'assert assert*)
    'assoc (copy-core-var assoc)
@@ -994,7 +1027,8 @@
    'assoc-in (copy-core-var assoc-in)
    'associative? (copy-core-var associative?)
    'atom (copy-core-var atom)
-   #?@(:clj ['bean (copy-core-var bean)])
+   #?@(:cljd []
+       :clj ['bean (copy-core-var bean)])
    'binding (macrofy 'binding sci-binding)
    'binding-conveyor-fn (copy-core-var vars/binding-conveyor-fn)
    'bit-and-not (copy-core-var bit-and-not)
@@ -1008,7 +1042,7 @@
    'boolean? (copy-core-var boolean?)
    'booleans (copy-core-var booleans)
    'butlast (copy-core-var butlast)
-   'bytes (copy-core-var bytes)
+   #_ #_'bytes (copy-core-var bytes)
    'bit-test (copy-core-var bit-test)
    'bit-and (copy-core-var bit-and)
    'bound-fn (macrofy 'bound-fn sci-bound-fn)
@@ -1017,10 +1051,10 @@
    'bit-or (copy-core-var bit-or)
    'bit-flip (copy-core-var bit-flip)
    'bit-not (copy-core-var bit-not)
-   'byte (copy-core-var byte)
+   #_ #_'byte (copy-core-var byte)
    'cat (copy-core-var cat)
-   'char (copy-core-var char)
-   'char? (copy-core-var char?)
+   #_ #_'char (copy-core-var char)
+   #_ #_'char? (copy-core-var char?)
    #?@(:clj ['class? (copy-core-var class?)])
    #?@(:cljs ['clj->js (copy-core-var clj->js)])
    'cond (macrofy 'cond cond*)
@@ -1035,12 +1069,12 @@
    'cycle (copy-core-var cycle)
    'comp (copy-core-var comp)
    'concat (copy-core-var concat)
-   'comparator (copy-core-var comparator)
+   #_ #_'comparator (copy-core-var comparator)
    'coll? (copy-core-var coll?)
    'compare (copy-core-var compare)
    'complement (copy-core-var complement)
    'constantly (copy-core-var constantly)
-   'chars (copy-core-var chars)
+   #_ #_'chars (copy-core-var chars)
    'completing (copy-core-var completing)
    'counted? (copy-core-var counted?)
    'chunk (copy-core-var chunk)
@@ -1051,7 +1085,7 @@
    'chunk-rest (copy-core-var chunk-rest)
    'chunk-next (copy-core-var chunk-next)
    'chunked-seq? (copy-core-var chunked-seq?)
-   'dec (copy-core-var dec)
+   #_ #_'dec (copy-core-var dec)
    'declare (macrofy 'declare declare* )
    'dedupe (copy-core-var dedupe)
    'defn- (macrofy 'defn- defn-*)
@@ -1060,9 +1094,10 @@
                        clojure-core-ns true)
    'delay (macrofy 'delay delay*)
    'delay? (copy-core-var delay?)
-   #?@(:clj ['deliver (copy-core-var deliver)])
-   'derive (core-var 'derive hierarchies/derive* true)
-   'descendants (core-var 'descendants hierarchies/descendants* true)
+   #?@(:cljd []
+       :clj ['deliver (copy-core-var deliver)])
+   #_ #_'derive (core-var 'derive hierarchies/derive* true)
+   #_ #_'descendants (core-var 'descendants hierarchies/descendants* true)
    'dissoc (copy-core-var dissoc)
    'dissoc! (copy-core-var dissoc!)
    'distinct (copy-core-var distinct)
@@ -1082,10 +1117,11 @@
    'drop-while (copy-core-var drop-while)
    'doubles (copy-core-var doubles)
    'eduction (copy-core-var eduction)
-   '->Eduction (copy-core-var ->Eduction)
+   #_ #_'->Eduction (copy-core-var ->Eduction)
    'empty (copy-core-var empty)
    'empty? (copy-core-var empty?)
-   #?@(:clj ['enumeration-seq (copy-core-var enumeration-seq)])
+   #?@(:cljd []
+       :clj ['enumeration-seq (copy-core-var enumeration-seq)])
    'eval (core-var 'eval eval true)
    'even? (copy-core-var even?)
    'every? (copy-core-var every?)
@@ -1099,8 +1135,8 @@
    'create-ns (core-var 'create-ns sci-create-ns true #_{:sci.impl/op needs-ctx})
    'find-var (core-var 'find-var sci-find-var true)
    'first (copy-core-var first)
-   'float? (copy-core-var float?)
-   'floats (copy-core-var floats)
+   #_ #_'float? (copy-core-var float?)
+   #_ #_'floats (copy-core-var floats)
    'fnil (copy-core-var fnil)
    'fnext (copy-core-var fnext)
    'ffirst (copy-core-var ffirst)
@@ -1110,7 +1146,7 @@
    'filterv (copy-core-var filterv)
    'find (copy-core-var find)
    'frequencies (copy-core-var frequencies)
-   'float (copy-core-var float)
+   #_ #_'float (copy-core-var float)
    'fn? (copy-core-var fn?)
    'for (macrofy 'for for-macro/expand-for)
    'force (copy-core-var force)
@@ -1133,8 +1169,8 @@
    'if-not (macrofy 'if-not if-not*)
    'ifn? (copy-core-var ifn?)
    'inc (copy-core-var inc)
-   'inst? (copy-core-var inst?)
-   'inst-ms (copy-core-var inst-ms)
+   #_ #_'inst? (copy-core-var inst?)
+   #_ #_'inst-ms (copy-core-var inst-ms)
    'instance? (core-var 'instance? protocols/instance-impl)
    'int-array (copy-core-var int-array)
    'interleave (copy-core-var interleave)
@@ -1146,10 +1182,10 @@
    'int? (copy-core-var int?)
    'interpose (copy-core-var interpose)
    'indexed? (copy-core-var indexed?)
-   'integer? (copy-core-var integer?)
+   #_ #_'integer? (copy-core-var integer?)
    'ints (copy-core-var ints)
-   'into-array (copy-core-var into-array)
-   'isa? (core-var 'isa? hierarchies/isa?* true)
+   #_ #_'into-array (copy-core-var into-array)
+   #_ #_'isa? (core-var 'isa? hierarchies/isa?* true)
    #?@(:cljs ['js->clj (copy-core-var js->clj)])
    #?@(:cljs ['js-obj (copy-core-var js-obj)])
    #?@(:cljs ['js-keys (copy-core-var js-keys)])
@@ -1164,17 +1200,17 @@
    'last (copy-core-var last)
    'lazy-cat (macrofy 'lazy-cat lazy-cat*)
    'letfn (macrofy 'letfn letfn*)
-   'load-string (core-var 'load-string load-string true)
-   'long (copy-core-var long)
+   #_ #_'load-string (core-var 'load-string load-string true)
+   #_ #_'long (copy-core-var long)
    'list (copy-core-var list)
    'list? (copy-core-var list?)
-   'longs (copy-core-var longs)
+   #_ #_'longs (copy-core-var longs)
    'list* (copy-core-var list*)
-   'long-array (copy-core-var long-array)
+   #_ #_'long-array (copy-core-var long-array)
    'macroexpand (core-var 'macroexpand macroexpand* true #_(with-meta macroexpand* {:sci.impl/op needs-ctx}))
    'macroexpand-1 (core-var 'macroexpand-1 macroexpand-1* true)
-   'make-array (copy-core-var make-array)
-   'make-hierarchy (copy-core-var make-hierarchy)
+   #_ #_'make-array (copy-core-var make-array)
+   #_ #_'make-hierarchy (copy-core-var make-hierarchy)
    'map (copy-core-var map)
    'map? (copy-core-var map?)
    'map-indexed (copy-core-var map-indexed)
@@ -1189,7 +1225,7 @@
    'merge-with (copy-core-var merge-with)
    'min (copy-core-var min)
    'min-key (copy-core-var min-key)
-   'munge (copy-core-var munge)
+   #_ #_'munge (copy-core-var munge)
    'mod (copy-core-var mod)
    'name (copy-core-var name)
    'namespace (copy-core-var namespace)
@@ -1221,7 +1257,7 @@
    'odd? (copy-core-var odd?)
    #?@(:cljs ['object? (copy-core-var object?)])
    'object-array (copy-core-var object-array)
-   'parents (core-var 'parents hierarchies/parents* true)
+   #_ #_'parents (core-var 'parents hierarchies/parents* true)
    'peek (copy-core-var peek)
    'pop (copy-core-var pop)
    'pop! (copy-core-var pop!)
@@ -1233,7 +1269,7 @@
    'partition-all (copy-core-var partition-all)
    'partition-by (copy-core-var partition-by)
    'persistent! (copy-core-var persistent!)
-   #?@(:clj ['promise (copy-core-var promise)])
+   #?@(:cljd () :clj ['promise (copy-core-var promise)])
    'push-thread-bindings (copy-core-var vars/push-thread-bindings)
    'qualified-ident? (copy-core-var qualified-ident?)
    'qualified-symbol? (copy-core-var qualified-symbol?)
@@ -1265,11 +1301,11 @@
    'reduce-kv (copy-core-var reduce-kv)
    'reduced (copy-core-var reduced)
    'reduced? (copy-core-var reduced?)
-   'reset! (core-var 'reset! core-protocols/reset!*)
+   #_ #_'reset! (core-var 'reset! core-protocols/reset!*)
    'reset-thread-binding-frame-impl (core-var 'reset-thread-binding-frame-impl vars/reset-thread-binding-frame)
    'resolve (core-var 'resolve sci-resolve true)
-   'reversible? (copy-core-var reversible?)
-   'rsubseq (copy-core-var rsubseq)
+   #_ #_'reversible? (copy-core-var reversible?)
+   #_ #_'rsubseq (copy-core-var rsubseq)
    'reductions (copy-core-var reductions)
    'rand (copy-core-var rand)
    'replace (copy-core-var replace)
@@ -1281,7 +1317,7 @@
    'set? (copy-core-var set?)
    'sequential? (copy-core-var sequential?)
    'select-keys (copy-core-var select-keys)
-   #?@(:clj ['short-array (copy-core-var short-array)])
+   #?@(:cljd () :clj ['short-array (copy-core-var short-array)])
    'simple-keyword? (copy-core-var simple-keyword?)
    'simple-symbol? (copy-core-var simple-symbol?)
    'some? (copy-core-var some?)
@@ -1292,36 +1328,38 @@
    'second (copy-core-var second)
    'set (copy-core-var set)
    'seq (copy-core-var seq)
-   #?@(:clj ['seq-to-map-for-destructuring (copy-var seq-to-map-for-destructuring clojure-core-ns)])
+   #?@(:cljd []
+       :clj ['seq-to-map-for-destructuring (copy-var seq-to-map-for-destructuring clojure-core-ns)])
    'seq? (copy-core-var seq?)
-   'short (copy-core-var short)
+   #_ #_'short (copy-core-var short)
    'shuffle (copy-core-var shuffle)
    'sort (copy-core-var sort)
    'sort-by (copy-core-var sort-by)
    ;; #?@(:cljs ['-js-this -js-this
    ;;            'this-as (macrofy 'this-as this-as clojure-core-ns)])
-   'test (copy-core-var test)
+   #_ #_'test (copy-core-var test)
    'thread-bound? (copy-var sci-thread-bound? clojure-core-ns {:name 'thread-bound?})
    'subs (copy-core-var subs)
-   #?@(:clj ['supers (copy-core-var supers)])
+   #?@(:cljd []
+       :clj ['supers (copy-core-var supers)])
    'symbol (copy-var symbol* clojure-core-ns {:name 'symbol})
    'symbol? (copy-core-var symbol?)
-   'special-symbol? (copy-core-var special-symbol?)
+   #_ #_'special-symbol? (copy-core-var special-symbol?)
    'subvec (copy-core-var subvec)
    'some-fn (copy-core-var some-fn)
    'some (copy-core-var some)
    'split-at (copy-core-var split-at)
    'split-with (copy-core-var split-with)
-   'sorted-set (copy-core-var sorted-set)
-   'subseq (copy-core-var subseq)
-   'sorted-set-by (copy-core-var sorted-set-by)
-   'sorted-map-by (copy-core-var sorted-map-by)
-   'sorted-map (copy-core-var sorted-map)
-   'sorted? (copy-core-var sorted?)
+   #_ #_'sorted-set (copy-core-var sorted-set)
+   #_ #_'subseq (copy-core-var subseq)
+   #_ #_'sorted-set-by (copy-core-var sorted-set-by)
+   #_ #_'sorted-map-by (copy-core-var sorted-map-by)
+   #_ #_'sorted-map (copy-core-var sorted-map)
+   #_ #_'sorted? (copy-core-var sorted?)
    'simple-ident? (copy-core-var simple-ident?)
    'sequence (copy-core-var sequence)
    'seqable? (copy-core-var seqable?)
-   'shorts (copy-core-var shorts)
+   #_ #_'shorts (copy-core-var shorts)
    'tagged-literal (copy-core-var tagged-literal)
    'tagged-literal? (copy-core-var tagged-literal?)
    'take (copy-core-var take)
@@ -1329,44 +1367,44 @@
    'take-nth (copy-core-var take-nth)
    'take-while (copy-core-var take-while)
    'the-ns (core-var 'the-ns sci-the-ns true)
-   'trampoline (copy-core-var trampoline)
+   #_ #_'trampoline (copy-core-var trampoline)
    'transduce (copy-core-var transduce)
    'transient (copy-core-var transient)
    'tree-seq (copy-core-var tree-seq)
-   'type #?(:clj (copy-core-var type)
+   #_ #_'type #?(:clj (copy-core-var type)
             :cljs (copy-var type clojure-core-ns))
    'true? (copy-core-var true?)
    'to-array (copy-core-var to-array)
-   'to-array-2d (copy-core-var to-array-2d)
+   #_ #_'to-array-2d (copy-core-var to-array-2d)
    'update (copy-core-var update)
    'update-in (copy-core-var update-in)
    'uri? (copy-core-var uri?)
-   'uuid? (copy-core-var uuid?)
-   'unchecked-dec (copy-core-var unchecked-dec)
-   'unchecked-inc-int (copy-core-var unchecked-inc-int)
-   'unchecked-long (copy-core-var unchecked-long)
-   'unchecked-negate (copy-core-var unchecked-negate)
-   'unchecked-remainder-int (copy-core-var unchecked-remainder-int)
-   'unchecked-subtract-int (copy-core-var unchecked-subtract-int)
-   'unsigned-bit-shift-right (copy-core-var unsigned-bit-shift-right)
-   'unchecked-float (copy-core-var unchecked-float)
-   'unchecked-add-int (copy-core-var unchecked-add-int)
-   'unchecked-double (copy-core-var unchecked-double)
-   'unchecked-multiply-int (copy-core-var unchecked-multiply-int)
-   'unchecked-int (copy-core-var unchecked-int)
-   'unchecked-multiply (copy-core-var unchecked-multiply)
-   'unchecked-dec-int (copy-core-var unchecked-dec-int)
-   'unchecked-add (copy-core-var unchecked-add)
+   #_ #_'uuid? (copy-core-var uuid?)
+   #_ #_'unchecked-dec (copy-core-var unchecked-dec)
+   #_ #_'unchecked-inc-int (copy-core-var unchecked-inc-int)
+   #_ #_'unchecked-long (copy-core-var unchecked-long)
+   #_ #_'unchecked-negate (copy-core-var unchecked-negate)
+   #_ #_'unchecked-remainder-int (copy-core-var unchecked-remainder-int)
+   #_ #_'unchecked-subtract-int (copy-core-var unchecked-subtract-int)
+   #_ #_'unsigned-bit-shift-right (copy-core-var unsigned-bit-shift-right)
+   #_ #_'unchecked-float (copy-core-var unchecked-float)
+   #_ #_'unchecked-add-int (copy-core-var unchecked-add-int)
+   #_ #_'unchecked-double (copy-core-var unchecked-double)
+   #_ #_'unchecked-multiply-int (copy-core-var unchecked-multiply-int)
+   #_ #_'unchecked-int (copy-core-var unchecked-int)
+   #_ #_'unchecked-multiply (copy-core-var unchecked-multiply)
+   #_ #_'unchecked-dec-int (copy-core-var unchecked-dec-int)
+   #_ #_'unchecked-add (copy-core-var unchecked-add)
    'unreduced (copy-core-var unreduced)
-   'unchecked-divide-int (copy-core-var unchecked-divide-int)
-   'unchecked-subtract (copy-core-var unchecked-subtract)
-   'unchecked-negate-int (copy-core-var unchecked-negate-int)
-   'unchecked-inc (copy-core-var unchecked-inc)
-   'unchecked-char (copy-core-var unchecked-char)
-   'unchecked-byte (copy-core-var unchecked-byte)
-   'unchecked-short (copy-core-var unchecked-short)
+   #_ #_'unchecked-divide-int (copy-core-var unchecked-divide-int)
+   #_ #_'unchecked-subtract (copy-core-var unchecked-subtract)
+   #_ #_'unchecked-negate-int (copy-core-var unchecked-negate-int)
+   #_ #_'unchecked-inc (copy-core-var unchecked-inc)
+   #_ #_'unchecked-char (copy-core-var unchecked-char)
+   #_ #_'unchecked-byte (copy-core-var unchecked-byte)
+   #_ #_'unchecked-short (copy-core-var unchecked-short)
    #?@(:cljs ['undefined? (copy-core-var undefined?)])
-   'underive (core-var 'underive hierarchies/underive* true)
+   #_ #_'underive (core-var 'underive hierarchies/underive* true)
    'unquote (doto (vars/new-var 'unquote nil {:ns clojure-core-ns})
               (vars/unbind))
    'use (core-var 'use use true)
@@ -1397,34 +1435,35 @@
    'with-redefs (macrofy 'with-redefs sci-with-redefs)
    'zipmap (copy-core-var zipmap)
    'zero? (copy-core-var zero?)
-   #?@(:clj ['+' (copy-core-var +')
+   #?@(:cljd []
+       :clj ['+' (copy-core-var +')
              '-' (copy-core-var -')
              '*' (copy-core-var *')
              'boolean-array (copy-core-var boolean-array)
              'byte-array (copy-core-var byte-array)
-             'bigint (copy-core-var bigint)
+             #_ #_'bigint (copy-core-var bigint)
              'bytes? (copy-core-var bytes?)
-             'biginteger (copy-core-var biginteger)
-             'bigdec (copy-core-var bigdec)
-             'char-array (copy-core-var char-array)
+             #_ #_'biginteger (copy-core-var biginteger)
+             #_ #_'bigdec (copy-core-var bigdec)
+             #_ #_'char-array (copy-core-var char-array)
              'char-escape-string (copy-core-var char-escape-string)
              'char-name-string (copy-core-var char-name-string)
              'class (copy-core-var class)
-             'dec' (copy-core-var dec')
-             'decimal? (copy-core-var decimal?)
+             #_ #_'dec' (copy-core-var dec')
+             #_ #_'decimal? (copy-core-var decimal?)
              'denominator (copy-core-var denominator)
              'format (copy-core-var format)
              'float-array (copy-core-var float-array)
              'inc' (copy-core-var inc')
-             'line-seq (copy-core-var line-seq)
+             #_ #_'line-seq (copy-core-var line-seq)
              'num (copy-core-var num)
              'namespace-munge (copy-core-var namespace-munge)
              'numerator (copy-core-var numerator)
-             'replicate (copy-core-var replicate)
-             'rational? (copy-core-var rational?)
+             #_ #_'replicate (copy-core-var replicate)
+             #_ #_'rational? (copy-core-var rational?)
              'ratio? (copy-core-var ratio?)
              'rationalize (copy-core-var rationalize)
-             'seque (copy-core-var seque)
+             #_ #_'seque (copy-core-var seque)
              'xml-seq (copy-core-var xml-seq)])})
 
 (defn dir-fn
@@ -1482,7 +1521,8 @@
   public definitions in all currently-loaded namespaces that match the
   str-or-pattern."
   [ctx str-or-pattern]
-  (let [matches? (if (instance? #?(:clj java.util.regex.Pattern :cljs js/RegExp) str-or-pattern)
+  (let [matches? (if (instance? #?(:cljd dart:core/RegExp :clj java.util.regex.Pattern :cljs js/RegExp)
+                                str-or-pattern)
                    #(re-find str-or-pattern (str %))
                    #(str/includes? (str %) (str str-or-pattern)))]
     (sort (mapcat (fn [ns]
@@ -1517,7 +1557,7 @@
               (str text)))))))
 
 
-(defn source-fn
+#_(defn source-fn
   "Returns a string of the source code for the given symbol, if it can
   find it.  This requires that the symbol resolve to a Var defined in
   a namespace for which the .clj is in the classpath.  Returns nil if
@@ -1541,7 +1581,7 @@
                 res (parser/parse-next ctx reader {:source true})]
             (:source (meta res))))))))
 
-(defn source
+#_(defn source
   "Prints the source code for the given symbol, if it can find it.
   This requires that the symbol resolve to a Var defined in a
   namespace for which the .clj is in the classpath.
@@ -1550,7 +1590,8 @@
   [_ _ n]
   `(println (or (~'clojure.repl/source-fn '~n) (str "Source not found"))))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defn root-cause
      "Returns the initial cause of an exception or error by peeling off all of
   its wrappers"
@@ -1564,7 +1605,8 @@
            (recur cause)
            cause)))))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defn demunge
      "Given a string representation of a fn class,
   as in a stack trace element, returns a readable version."
@@ -1572,7 +1614,8 @@
      [fn-name]
      (clojure.lang.Compiler/demunge fn-name)))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defn stack-element-str
      "Returns a (possibly unmunged) string representation of a StackTraceElement"
      {:added "1.3"}
@@ -1586,7 +1629,8 @@
               (str (.getClassName el) "." (.getMethodName el)))
             " (" (.getFileName el) ":" (.getLineNumber el) ")"))))
 
-#?(:clj
+#?(:cljd ()
+   :clj
    (defn pst
      "Prints a stack trace of the exception, to the depth requested. If none supplied, uses the root cause of the
   most recent repl exception (*e), and a depth of 12."
@@ -1628,9 +1672,10 @@
    'doc (macrofy 'doc doc clojure-repl-namespace)
    'find-doc (repl-var 'find-doc find-doc true)
    'apropos (repl-var 'apropos apropos true)
-   'source (macrofy 'source source clojure-repl-namespace)
-   'source-fn (repl-var 'source-fn source-fn true)
-   #?@(:clj ['pst (repl-var 'pst pst true)
+   #_ #_'source (macrofy 'source source clojure-repl-namespace)
+   #_ #_'source-fn (repl-var 'source-fn source-fn true)
+   #?@(:cljd []
+       :clj ['pst (repl-var 'pst pst true)
              'stack-element-str (repl-var 'stack-element-str stack-element-str)
              'demunge (repl-var 'demunge demunge)])})
 
@@ -1710,7 +1755,7 @@
                     'trimr (copy-var str/trimr clojure-string-namespace)
                     'upper-case (copy-var str/upper-case clojure-string-namespace)
                     #?@(:clj ['re-quote-replacement (copy-var str/re-quote-replacement clojure-string-namespace)])}
-   'clojure.set {:obj clojure-set-namespace
+   #_ #_'clojure.set {:obj clojure-set-namespace
                  'difference (copy-var set/difference clojure-set-namespace)
                  'index (copy-var set/index clojure-set-namespace)
                  'intersection (copy-var set/intersection clojure-set-namespace)
@@ -1726,7 +1771,7 @@
    'clojure.walk clojure-walk-ns
    'clojure.template clojure-template
    'clojure.repl clojure-repl
-   'clojure.edn {:obj clojure-edn-namespace
+   #_ #_'clojure.edn {:obj clojure-edn-namespace
                  'read (copy-var edn/read clojure-edn-namespace)
                  'read-string (copy-var edn/read-string clojure-edn-namespace)}
    'sci.impl.records sci-impl-records})

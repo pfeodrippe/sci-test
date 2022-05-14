@@ -16,4 +16,7 @@
   [c])
 
 (defn class?
-  [c])  
+  [c])
+
+(defn resolve
+  [c])

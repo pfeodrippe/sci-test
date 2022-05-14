@@ -1,8 +1,8 @@
 (ns quickstart.helloworld
   (:require
-   #_[sci.core :as sci]
+   [sci.core :as sci]
    #_[sci.impl.vars]
-   [sci.impl.interpreter :as interpreter]
+   #_[sci.impl.interpreter :as interpreter]
    #_[sci.impl.analyzer]
    #_[sci.impl.evaluator]))
 
@@ -24,4 +24,6 @@
 
 (defn main []
   (print (str "hello,ss world\n"
-              (interpreter/eval-form {} '(do (+ 1 2))))))
+              (sci/eval-form {} '(do 3))
+              "\n"
+              (sci/eval-form (sci/init {}) '(+ 1 2)))))
