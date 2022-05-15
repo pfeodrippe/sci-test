@@ -860,6 +860,11 @@
 (def core-var
   (ns-new-var clojure-core-ns))
 
+(defn ^bool boolean?
+  "Return true if x is a Boolean"
+  [x]
+  (dart/is? x bool))
+
 (def clojure-core
   {:obj clojure-core-ns
    '*ns* vars/current-ns
@@ -957,8 +962,8 @@
    ;; IAtom / ISwap as protocol
    #_ #_'swap! (core-var 'swap! core-protocols/swap!*)
    #_ #_'compare-and-set! #?(:clj (core-var 'compare-and-set!
-                                       core-protocols/compare-and-set!*)
-                        :cljs (copy-core-var compare-and-set!))
+                                            core-protocols/compare-and-set!*)
+                             :cljs (copy-core-var compare-and-set!))
    #?@(:cljs ['IReset core-protocols/reset-protocol
               'ISwap core-protocols/swap-protocol
               '-swap! (core-var '-swap! core-protocols/-swap!)
@@ -1372,7 +1377,7 @@
    'transient (copy-core-var transient)
    'tree-seq (copy-core-var tree-seq)
    #_ #_'type #?(:clj (copy-core-var type)
-            :cljs (copy-var type clojure-core-ns))
+                 :cljs (copy-var type clojure-core-ns))
    'true? (copy-core-var true?)
    'to-array (copy-core-var to-array)
    #_ #_'to-array-2d (copy-core-var to-array-2d)

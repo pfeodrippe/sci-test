@@ -1,7 +1,30 @@
-(ns missing.stuff)
+(ns missing.stuff
+  (:require
+   ["dart:mirrors" :as mirrors]))
 
-(defn instance?
-  [x y])
+(defmacro instance?
+  [x y]
+  #_(println [x (resolve x) (class  (do #_(require x)
+                                        (resolve x)))])
+  #_(when-not (contains? #{'Exception 'dart:core/RegExp} x)
+      `(println ~(str x) (try (.runtimeType ~x)
+                              (catch Exception _))))
+
+  #_`(println ~x " ------ " (.runtimeType ~y))
+  (list
+   'do
+   #_`(println (mirrors/reflect ~x))
+   (cond
+     (or (.startsWith (str x) "I")
+         (.contains (str x) "/I")
+         (= x 'sci.impl.types/Eval))
+     `(satisfies? ~x ~y)
+
+     (contains? #{"c" "clazz"} (str x))
+     `(println :>>>>DYNAMIC ~x)
+
+     :else
+     `(dart/is? ~y ~x))))
 
 (defn isa?
   [x y])

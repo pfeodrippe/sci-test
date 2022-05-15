@@ -319,8 +319,9 @@
       (throw (new #?(:cljd Exception :clj IllegalStateException :cljs js/Error)
                   (str "Can't change/establish root binding of " this " with set")))))
   (getVal [this] root)
-  #?(:clj cljd.core/IDeref :cljs IDeref)
-  (#?(:clj deref
+  #?(:cljd cljd.core/IDeref :clj cljd.core/IDeref :cljs IDeref)
+  (#?(:cljd -deref
+      :clj deref
       :cljs -deref) [this]
     (if thread-bound
       (if-let [tbox (get-thread-binding this)]

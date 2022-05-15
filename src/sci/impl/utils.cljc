@@ -19,7 +19,7 @@
       (number? x)
       (string? x)
       (keyword? x)
-      (boolean? x)
+      (dart/is? x bool)
       #?(:cljd
          (instance? dart:core/RegExp x)
          :clj

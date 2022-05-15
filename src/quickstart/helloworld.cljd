@@ -1,29 +1,29 @@
 (ns quickstart.helloworld
   (:require
-   [sci.core :as sci]
-   #_[sci.impl.vars]
-   #_[sci.impl.interpreter :as interpreter]
-   #_[sci.impl.analyzer]
-   #_[sci.impl.evaluator]))
+     [sci.core :as sci]
+     #_[sci.impl.vars]
+     #_[sci.impl.interpreter :as interpreter]
+     #_[sci.impl.analyzer]
+     #_[sci.impl.evaluator]
+     [missing.stuff :refer [instance?]]))
 
-#_(defprotocol ITestProtocol
+(defprotocol ITestProtocol
   (act [_ _]))
 
-#_(deftype Test [^:mutable x-a]
-  (^:setter x_a [_ v]
-   #_(set! x-a v))
-  ITestProtocol
-  (act [this o] (set! x-a o))
-
-  Object
-  (toString [this]
-    (str x-a)))
-
-#_(def ggg (Test. 10))
-#_(act ggg 40)
+(deftype TestProtocol [])
 
 (defn main []
   (print (str "hello,ss world\n"
-              (sci/eval-form {} '(do 3))
+              (instance? TestProtocol 10)
+
               "\n"
-              (sci/eval-form (sci/init {}) '(+ 1 2)))))
+              (instance? ITestProtocol 10)
+              "\n"
+              #_(dart/is? ITestProtocol cljd.core/IProtocol)
+              "\n"
+              #_(.runtimeType (TestProtocol.))
+              "\n"
+              #_(satisfies? TestProtocol 20)
+              (str #_(sci/eval-form {} '(do 3))
+                   "\n"
+                   (sci/eval-form (sci/init {}) '(+ 1 2))))))

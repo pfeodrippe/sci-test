@@ -135,7 +135,8 @@
           [[_ r]
            (reduce (fn [_ c]
                      (let [clazz (:class c)]
-                       (when #?(:cljs
+                       (when #?(:cljd ()
+                                :cljs
                                 (or (kw-identical? :default clazz)
                                     (if (instance? sci.impl.types/NodeR clazz)
                                       (instance? (types/eval clazz ctx bindings) e)
