@@ -1,29 +1,16 @@
 (ns quickstart.helloworld
   (:require
-     [sci.core :as sci]
-     #_[sci.impl.vars]
-     #_[sci.impl.interpreter :as interpreter]
-     #_[sci.impl.analyzer]
-     #_[sci.impl.evaluator]
-     [missing.stuff :refer [instance?]]))
-
-(defprotocol ITestProtocol
-  (act [_ _]))
-
-(deftype TestProtocol [])
+   [sci.core :as sci]))
 
 (defn main []
-  (print (str "hello,ss world\n"
-              (instance? TestProtocol 10)
-
-              "\n"
-              (instance? ITestProtocol 10)
-              "\n"
-              #_(dart/is? ITestProtocol cljd.core/IProtocol)
-              "\n"
-              #_(.runtimeType (TestProtocol.))
-              "\n"
-              #_(satisfies? TestProtocol 20)
-              (str #_(sci/eval-form {} '(do 3))
-                   "\n"
-                   (sci/eval-form (sci/init {}) '(+ 1 2))))))
+  (println (sci/eval-form (sci/init {})
+                          '(+ 1 2))
+           "\n"
+           (sci/eval-form (sci/init {})
+                          '(+ 4 (- 5 1)))
+           "\n"
+           (sci/eval-form (sci/init {})
+                          '(-> (- 5 1)
+                               (+ 4)
+                               (* 2)
+                               (+ 10)))))
