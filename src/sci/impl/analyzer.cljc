@@ -1253,9 +1253,9 @@
                                      (and idx (not= (dec len) idx))
                                    ;; this is to support calls like js/Promise.all
                                    ;; and js/process.argv.slice
-                                   [(gobj/getValueByKeys class (into-array (.split (subs method-name 0 idx) ".")))
-                                    (subs method-name (inc idx))]
-                                   f)
+                                     [(gobj/getValueByKeys class (into-array (.split (subs method-name 0 idx) ".")))
+                                      (subs method-name (inc idx))]
+                                     f)
                                children (analyze-children ctx (rest expr))]
                            (sci.impl.types/->Node
                             (eval/eval-static-method-invocation ctx bindings (cons f children))
@@ -1265,39 +1265,41 @@
                            (or
                             special-sym
                             (contains? ana-macros f)))
-                      (case f
+                      ;; FIXME: Convert to string until we have
+                      ;; https://github.com/Tensegritics/ClojureDart/issues/76 resolved.
+                      (case (str f)
                         ;; we treat every subexpression of a top-level do as a separate
                         ;; analysis/interpretation unit so we hand this over to the
                         ;; interpreter again, which will invoke analysis + evaluation on
                         ;; every sub expression
-                        do (return-do ctx expr (rest expr))
-                        let (analyze-let ctx expr)
-                        let* (analyze-let* ctx expr (second expr) (nnext expr))
-                        (fn fn*) (analyze-fn ctx expr false)
-                        def (analyze-def ctx expr)
+                        "do" (return-do ctx expr (rest expr))
+                        "let" (analyze-let ctx expr)
+                        "let*" (analyze-let* ctx expr (second expr) (nnext expr))
+                        ("fn" "fn*") (analyze-fn ctx expr false)
+                        "def" (analyze-def ctx expr)
                         ;; NOTE: defn / defmacro aren't implemented as normal macros yet
-                        (defn defmacro) (let [ret (analyze-defn ctx expr)]
-                                          ret)
+                        ("defn" "defmacro") (let [ret (analyze-defn ctx expr)]
+                                              ret)
                         ;; TODO: implement as normal macro in namespaces.cljc
-                        loop (analyze-loop ctx expr)
-                        lazy-seq (analyze-lazy-seq ctx expr)
-                        if (return-if ctx expr)
-                        case (analyze-case ctx expr)
-                        try (analyze-try ctx expr)
-                        throw (analyze-throw ctx expr)
-                        expand-dot* (expand-dot* ctx expr)
-                        . (expand-dot** ctx expr)
-                        expand-constructor (expand-constructor ctx expr)
-                        new (analyze-new ctx expr)
-                        ns (analyze-ns-form ctx expr)
-                        var (analyze-var ctx expr)
-                        set! (analyze-set! ctx expr)
-                        quote (analyze-quote ctx expr)
-                        import (analyze-import ctx expr)
-                        or (return-or ctx expr (rest expr))
-                        and (return-and ctx expr (rest expr))
-                        recur (return-recur ctx expr (analyze-children (without-recur-target ctx) (rest expr)))
-                        in-ns (analyze-in-ns ctx expr))
+                        "loop" (analyze-loop ctx expr)
+                        "lazy-seq" (analyze-lazy-seq ctx expr)
+                        "if" (return-if ctx expr)
+                        "case" (analyze-case ctx expr)
+                        "try" (analyze-try ctx expr)
+                        "throw" (analyze-throw ctx expr)
+                        "expand-dot*" (expand-dot* ctx expr)
+                        "." (expand-dot** ctx expr)
+                        "expand-constructor" (expand-constructor ctx expr)
+                        "new" (analyze-new ctx expr)
+                        "ns" (analyze-ns-form ctx expr)
+                        "var" (analyze-var ctx expr)
+                        "set!" (analyze-set! ctx expr)
+                        "quote" (analyze-quote ctx expr)
+                        "import" (analyze-import ctx expr)
+                        "or" (return-or ctx expr (rest expr))
+                        "and" (return-and ctx expr (rest expr))
+                        "recur" (return-recur ctx expr (analyze-children (without-recur-target ctx) (rest expr)))
+                        "in-ns" (analyze-in-ns ctx expr))
                       :else
                       (try
                         (if (macro? f)
@@ -1538,6 +1540,7 @@
    (analyze ctx expr false))
   ([ctx expr top-level?]
    (let [m (meta expr)]
+     (println {:expr expr :constant? (constant? expr) :meta m})
      (cond
        (constant? expr) (->constant expr)
        (symbol? expr) (let [v (resolve/resolve-symbol ctx expr false (:tag m))
