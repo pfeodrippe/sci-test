@@ -106,7 +106,7 @@
 
 (defn rethrow-with-location-of-node
   ([ctx e raw-node] (rethrow-with-location-of-node ctx (:bindings ctx) e raw-node))
-  ([ctx _bindings ^cljd.core/ExceptionInfo e raw-node]
+  ([ctx _bindings ^Exception e raw-node]
    (if #?(:cljd *in-try*
           :clj (or *in-try*
                    (not= (:main-thread-id ctx)

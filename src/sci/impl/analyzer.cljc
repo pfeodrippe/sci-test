@@ -231,7 +231,7 @@
                                    (do ~@(map (fn [j]
                                                 `(aset
                                                   ~(with-meta 'bindings
-                                                     {:tag 'cljd.core/PersistentVector}) ~j
+                                                     {:tag 'cljd.core/LazySeq}) ~j
                                                   ~(symbol (str "eval-" j))))
                                               (range i)))
                                    ::recur)
@@ -387,7 +387,7 @@
                                                (when-let [binding-idx (get iden->invoke-idx iden)]
                                                  (let [enclosed-idx (get iden->enclosed-idx iden)]
                                                    ;; (prn :copying binding-idx '-> enclosed-idx)
-                                                   (doto ^cljd.core/PersistentVector (object-array 2)
+                                                   (doto ^cljd.core/LazySeq (object-array 2)
                                                      (aset 0 binding-idx)
                                                      (aset 1 enclosed-idx)))))
                                              closed-over-idens))]
@@ -397,7 +397,7 @@
                              binding-idx (aget idxs 0)
                              binding-val (aget bindings binding-idx)
                              enclosed-idx (aget idxs 1)]
-                         (aset ^cljd.core/PersistentVector ret enclosed-idx binding-val)
+                         (aset ^cljd.core/LazySeq ret enclosed-idx binding-val)
                          ret))))
           (constantly nil))
         bodies (:bodies analyzed-bodies)
@@ -407,20 +407,20 @@
                              enclosed->invocation
                              (identity #_into-array (keep (fn [iden]
                                                             (when-let [invocation-idx (iden->invocation-idx iden)]
-                                                              (doto ^cljd.core/PersistentVector (object-array 2)
+                                                              (doto ^cljd.core/LazySeq (object-array 2)
                                                                 (aset 0 (iden->enclosed-idx iden))
                                                                 (aset 1 invocation-idx))))
                                                           closed-over-idens))
                              invoc-size (count iden->invocation-idx)
                              copy-enclosed->invocation
-                             (when (pos? (alength ^cljd.core/PersistentVector enclosed->invocation))
+                             (when (pos? (alength ^cljd.core/LazySeq enclosed->invocation))
                                (fn [enclosed-array invoc-array]
                                  (areduce enclosed->invocation idx ret invoc-array
                                           (let [idxs (aget enclosed->invocation idx)
                                                 enclosed-idx (aget  idxs 0)
                                                 enclosed-val (aget enclosed-array enclosed-idx)
                                                 invoc-idx (aget idxs 1)]
-                                            (aset ^cljd.core/PersistentVector ret invoc-idx enclosed-val)
+                                            (aset ^cljd.core/LazySeq ret invoc-idx enclosed-val)
                                             ret))))]
                          (assoc body
                                 :invoc-size invoc-size
