@@ -3,18 +3,18 @@
    [sci.core :as sci]))
 
 (defn main []
-  (println #_((sci/eval-form (sci/init {})
-                             '(+ 1 2))
-              "\n"
-              (sci/eval-form (sci/init {})
-                             '(+ 4 (- 5 1)))
-              "\n"
-              (sci/eval-form (sci/init {})
-                             '(-> (- 5 1)
-                                  (+ 4)
-                                  (* 2)
-                                  (+ 10)))
-              "\n")
-           (sci/eval-form (sci/init {})
-                          '(defn eita []
-                             1))))
+  (println (sci/eval-form (sci/init {})
+                            '(+ 1 2))
+             "\n"
+             (sci/eval-form (sci/init {})
+                            '(+ 4 (- 5 1)))
+             "\n"
+             (sci/eval-form (sci/init {})
+                            '(-> (- 5 1)
+                                 (+ 4)
+                                 (* 2)
+                                 (+ 10)))
+             "\n"
+             #_(sci/eval-form (sci/init {})
+                              '(defn eita []
+                                 1))))

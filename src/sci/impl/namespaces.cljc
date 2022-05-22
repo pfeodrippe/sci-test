@@ -1366,7 +1366,7 @@
    'seqable? (copy-core-var seqable?)
    #_ #_'shorts (copy-core-var shorts)
    'tagged-literal (copy-core-var tagged-literal)
-   'tagged-literal? (copy-core-var tagged-literal?)
+   #_ #_'tagged-literal? (copy-core-var tagged-literal?)
    'take (copy-core-var take)
    'take-last (copy-core-var take-last)
    'take-nth (copy-core-var take-nth)
